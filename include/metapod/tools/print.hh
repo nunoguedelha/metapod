@@ -30,121 +30,118 @@
 namespace metapod
 {
 
-// Print state of the robot in a stream.
-template< typename Tree >
-void printState(std::ostream & os)
-{
-  typedef Tree Node;
-
-  os << Node::Body::name << " :\n"
-    << "sXp :\n" << Node::Joint::sXp << "\n"
-    << "Xt :\n" << Node::Joint::Xt << "\n"
-    << "Xj :\n" << Node::Joint::Xj << "\n"
-     << "S :\n" << Node::Joint::S.S() << "\n"
-    << "dotS :\n" << Node::Joint::dotS << "\n"
-    << "iX0 :\n" << Node::Body::iX0 << "\n"
-    << "vi :\n" << Node::Body::vi << "\n"
-    << "ai :\n" << Node::Body::ai << "\n"
-    << "I :\n" << Node::Body::I << "\n"
-    << "f :\n" << Node::Joint::f << "\n"
-    << "τ :\n" << Node::Joint::torque << "\n"
-    << std::endl;
-
-  printState<typename Node::Child0>(os);
-  printState<typename Node::Child1>(os);
-  printState<typename Node::Child2>(os);
-  printState<typename Node::Child3>(os);
-  printState<typename Node::Child4>(os);
-}
-
-template<> inline void printState<NC>(std::ostream &){}
-
-
-/*
- * Print a conf vector in a stream.
- * Can be used to log a configuration that can later be loaded through the
- * initConf method.
- */
-template< typename Tree > void printConf(const vectorN & q,
-                                         std::ostream & qlog)
-{
-  typedef Tree Node;
-
-  vectorN qi = q.segment<Node::Joint::NBDOF>(Node::Joint::positionInConf);
-
-  qlog << Node::Joint::name << "\n" << qi << std::endl;
-
-  printConf<typename Node::Child0>(q, qlog);
-  printConf<typename Node::Child1>(q, qlog);
-  printConf<typename Node::Child2>(q, qlog);
-  printConf<typename Node::Child3>(q, qlog);
-  printConf<typename Node::Child4>(q, qlog);
-}
-
-template<>
-inline void printConf<NC>(const vectorN &, std::ostream &){}
-
-// Print Transforms of the robot bodies in a stream.
-template < typename Node > struct PrintTransformsVisitor
-{
-  static void visit(std::ostream & os)
+  // Print state of the robot in a stream.
+  template < typename Node > struct PrintStateVisitor
   {
-    os << Node::Body::name << "\n"
-       << Node::Body::iX0.E() << "\n"
-       << Node::Body::iX0.r().transpose() << "\n"
+    static void visit(std::ostream & os)
+    {
+      os << Node::Body::name << " :\n"
+	 << "sXp :\n" << Node::Joint::sXp << "\n"
+	 << "Xt :\n" << Node::Joint::Xt << "\n"
+	 << "Xj :\n" << Node::Joint::Xj << "\n"
+	 << "S :\n" << Node::Joint::S.S() << "\n"
+	 << "dotS :\n" << Node::Joint::dotS << "\n"
+	 << "iX0 :\n" << Node::Body::iX0 << "\n"
+	 << "vi :\n" << Node::Body::vi << "\n"
+	 << "ai :\n" << Node::Body::ai << "\n"
+	 << "I :\n" << Node::Body::I << "\n"
+	 << "f :\n" << Node::Joint::f << "\n"
+	 << "τ :\n" << Node::Joint::torque << "\n"
+	 << std::endl;
+    }
+  };
+
+  template< typename Robot >
+  void printState(std::ostream & os)
+  {
+    depth_first_visit<PrintStateVisitor, Robot>::run(os);
+  }
+
+  /*
+   * Print a conf vector in a stream.
+   * Can be used to log a configuration that can later be loaded through the
+   * initConf method.
+   */
+  template< typename Tree > void printConf(const vectorN & q,
+					   std::ostream & qlog)
+  {
+    typedef Tree Node;
+
+    vectorN qi = q.segment<Node::Joint::NBDOF>(Node::Joint::positionInConf);
+
+    qlog << Node::Joint::name << "\n" << qi << std::endl;
+
+    printConf<typename Node::Child0>(q, qlog);
+    printConf<typename Node::Child1>(q, qlog);
+    printConf<typename Node::Child2>(q, qlog);
+    printConf<typename Node::Child3>(q, qlog);
+    printConf<typename Node::Child4>(q, qlog);
+  }
+
+  template<>
+  inline void printConf<NC>(const vectorN &, std::ostream &){}
+
+  // Print Transforms of the robot bodies in a stream.
+  template < typename Node > struct PrintTransformsVisitor
+  {
+    static void visit(std::ostream & os)
+    {
+      os << Node::Body::name << "\n"
+	 << Node::Body::iX0.E() << "\n"
+	 << Node::Body::iX0.r().transpose() << "\n"
+	 << std::endl;
+    }
+  };
+
+  template< typename Robot >
+  void printTransforms(std::ostream & os)
+  {
+    depth_first_visit<PrintTransformsVisitor, Robot>::run(os);
+  }
+
+  // Print Torques of the robot in a stream.
+  template< typename Tree >
+  void printTorques(std::ostream & os)
+  {
+    typedef Tree Node;
+
+    os << Node::Joint::name << "\n"
+       << Node::Joint::torque << "\n"
        << std::endl;
+
+    printTorques<typename Node::Child0>(os);
+    printTorques<typename Node::Child1>(os);
+    printTorques<typename Node::Child2>(os);
+    printTorques<typename Node::Child3>(os);
+    printTorques<typename Node::Child4>(os);
   }
-};
 
-template< typename Robot >
-void printTransforms(std::ostream & os)
-{
-  depth_first_visit<PrintTransformsVisitor, Robot>::run(os);
-};
+  template<>
+  inline void printTorques<NC>(std::ostream &){}
 
-// Print Torques of the robot in a stream.
-template< typename Tree >
-void printTorques(std::ostream & os)
-{
-  typedef Tree Node;
-
-  os << Node::Joint::name << "\n"
-     << Node::Joint::torque << "\n"
-     << std::endl;
-
-  printTorques<typename Node::Child0>(os);
-  printTorques<typename Node::Child1>(os);
-  printTorques<typename Node::Child2>(os);
-  printTorques<typename Node::Child3>(os);
-  printTorques<typename Node::Child4>(os);
-}
-
-template<>
-inline void printTorques<NC>(std::ostream &){}
-
-// Get Torques of the robot.
-template< typename Tree >
-void getTorques(vectorN& torques, unsigned& i)
-{
-  typedef Tree Node;
-
-  unsigned j = 0;
-  while (j < Node::Joint::NBDOF)
+  // Get Torques of the robot.
+  template< typename Tree >
+  void getTorques(vectorN& torques, unsigned& i)
   {
-    torques[i] = Node::Joint::torque[j];
-    ++i;
-    ++j;
+    typedef Tree Node;
+
+    unsigned j = 0;
+    while (j < Node::Joint::NBDOF)
+      {
+	torques[i] = Node::Joint::torque[j];
+	++i;
+	++j;
+      }
+
+    getTorques<typename Node::Child0>(torques, i);
+    getTorques<typename Node::Child1>(torques, i);
+    getTorques<typename Node::Child2>(torques, i);
+    getTorques<typename Node::Child3>(torques, i);
+    getTorques<typename Node::Child4>(torques, i);
   }
 
-  getTorques<typename Node::Child0>(torques, i);
-  getTorques<typename Node::Child1>(torques, i);
-  getTorques<typename Node::Child2>(torques, i);
-  getTorques<typename Node::Child3>(torques, i);
-  getTorques<typename Node::Child4>(torques, i);
-}
-
-template<>
-inline void getTorques<NC>(vectorN&, unsigned&){}
+  template<>
+  inline void getTorques<NC>(vectorN&, unsigned&){}
 
 } // end of namespace metapod.
 
