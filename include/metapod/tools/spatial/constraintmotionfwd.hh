@@ -61,9 +61,9 @@ namespace metapod
         vector6dt transpose() const {return m_S.transpose();}
     };
 
-    typedef ConstraintMotionOneAxis<AxisX> ConstraintMotionOneAxisAxisX;
-    typedef ConstraintMotionOneAxis<AxisY> ConstraintMotionOneAxisAxisY;
-    typedef ConstraintMotionOneAxis<AxisZ> ConstraintMotionOneAxisAxisZ;
+    typedef ConstraintMotionOneAxis<AxisX> ConstraintMotionAxisX;
+    typedef ConstraintMotionOneAxis<AxisY> ConstraintMotionAxisY;
+    typedef ConstraintMotionOneAxis<AxisZ> ConstraintMotionAxisZ;
 
   } // End of spatial namespace
 } // End of metapod namespace

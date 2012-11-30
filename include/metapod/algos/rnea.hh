@@ -69,8 +69,9 @@ namespace metapod
                     const confVector & ddq) __attribute__ ((hot))
     {
       // Extract subvector corresponding to current Node
-      Eigen::Matrix< FloatType, Node::Joint::NBDOF, 1 > ddqi =
-        ddq.template segment<Node::Joint::NBDOF>(Node::Joint::positionInConf);
+      if (Node::Joint::NBDOF!=0)
+	Eigen::Matrix< FloatType, Node::Joint::NBDOF, 1 > ddqi =
+	  ddq.template segment<Node::Joint::NBDOF>(Node::Joint::positionInConf);
 
       // iX0 = iXλ(i) * λ(i)X0
       // vi = iXλ(i) * vλ(i) + vj
