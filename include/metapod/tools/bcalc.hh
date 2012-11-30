@@ -48,9 +48,14 @@ namespace metapod
 
     static void run(const confVector & q)
     {
-      Node::Joint::bcalc
-        (q.template segment< Node::Joint::NBDOF >(Node::Joint::positionInConf));
-      Node::Body::iX0 = Node::Joint::sXp;
+      if (Node::Joint::NBDOF!=0)
+	{
+	  Node::Joint::bcalc
+	    (q.template segment<Node::Joint::NBDOF>(Node::Joint::positionInConf));
+	  Node::Body::iX0 = Node::Joint::sXp;
+	}
+      else
+	Node::Body::iX0 = Node::Joint::Xt;
 
       bcalc_internal< typename Node::Child0, confVector, true >::run(q);
       bcalc_internal< typename Node::Child1, confVector, true >::run(q);
@@ -67,9 +72,14 @@ namespace metapod
 
     static void run(const confVector & q)
     {
-      Node::Joint::bcalc
-        (q.template segment< Node::Joint::NBDOF >(Node::Joint::positionInConf));
-      Node::Body::iX0 = Node::Joint::sXp * Node::Body::Parent::iX0;
+      if (Node::Joint::NBDOF!=0)
+	{
+	  Node::Joint::bcalc
+	    (q.template segment<Node::Joint::NBDOF>(Node::Joint::positionInConf));
+	  Node::Body::iX0 = Node::Joint::sXp * Node::Body::Parent::iX0;
+	}
+      else
+	  Node::Body::iX0 = Node::Joint::Xt * Node::Body::Parent::iX0;
 
       bcalc_internal< typename Node::Child0, confVector, true >::run(q);
       bcalc_internal< typename Node::Child1, confVector, true >::run(q);
