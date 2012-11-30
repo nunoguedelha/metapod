@@ -75,7 +75,7 @@ namespace metapod
   struct depth_first_visit_internal<Visitor, NC >
   {
     template<typename Arg>
-    static void run(Arg & arg) {}
+    static void run(Arg & ) {}
 
     static void run() {}
   };
