@@ -1,6 +1,7 @@
 // Copyright 2012,
 //
 // Maxime Reis (JRL/LAAS, CNRS/AIST)
+// Antonio El Khoury (JRL/LAAS, CNRS/AIST)
 // Sébastien Barthélémy (Aldebaran Robotics)
 //
 // This file is part of metapod.
@@ -44,10 +45,10 @@ namespace metapod
 
     static void run(const confVector & q, const confVector & dq)
     {
-      Node::Joint::jcalc(
-        q.template segment< Node::Joint::NBDOF >(Node::Joint::positionInConf),
-        dq.template segment< Node::Joint::NBDOF >(Node::Joint::positionInConf)
-      );
+      if (Node::Joint::NBDOF!=0)
+	Node::Joint::jcalc
+	  (q.template segment<Node::Joint::NBDOF>(Node::Joint::positionInConf),
+	   dq.template segment<Node::Joint::NBDOF>(Node::Joint::positionInConf));
 
       jcalc_internal< typename Node::Child0, confVector >::run(q, dq);
       jcalc_internal< typename Node::Child1, confVector >::run(q, dq);
