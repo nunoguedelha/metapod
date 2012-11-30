@@ -1,6 +1,7 @@
 // Copyright 2011, 2012,
 //
 // Maxime Reis (JRL/LAAS, CNRS/AIST)
+// Antonio El Khoury (JRL/LAAS, CNRS/AIST)
 // Sébastien Barthélémy (Aldebaran Robotics)
 //
 // This file is part of metapod.
@@ -69,16 +70,23 @@ namespace metapod
       crba_forward_propagation< Robot, typename Node::Child4 >::run();
 
       if(Node::Body::HAS_PARENT)
-        Node::Body::Parent::Iic = Node::Body::Parent::Iic
-                                + Node::Joint::sXp.applyInv(Node::Body::Iic);
+	if (Node::Joint::NBDOF!=0)
+	  Node::Body::Parent::Iic = Node::Body::Parent::Iic
+	    + Node::Joint::sXp.applyInv(Node::Body::Iic);
+	else
+	  Node::Body::Parent::Iic = Node::Body::Parent::Iic
+	    + Node::Joint::Xt.applyInv(Node::Body::Iic);
 
-      Node::Body::Joint::F = Node::Body::Iic * Node::Joint::S;
-      if (Node::Joint::NBDOF)
-	Robot::H.template block<Node::Joint::NBDOF, Node::Joint::NBDOF>(
-	  Node::Joint::positionInConf, Node::Joint::positionInConf)
+      if (Node::Joint::NBDOF!=0)
+	{
+	  Node::Body::Joint::F = Node::Body::Iic * Node::Joint::S;
+
+	  Robot::H.template block<Node::Joint::NBDOF, Node::Joint::NBDOF>
+	    (Node::Joint::positionInConf, Node::Joint::positionInConf)
 	    = Node::Joint::S.transpose() * Node::Body::Joint::F;
 
-      crba_backward_propagation< Robot, BI, BI, typename BI::Parent >::run();
+	  crba_backward_propagation< Robot, BI, BI, typename BI::Parent >::run();
+	}
     }
   };
 
