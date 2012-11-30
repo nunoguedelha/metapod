@@ -1,6 +1,7 @@
 // Copyright 2011, 2012,
 //
 // Maxime Reis (JRL/LAAS, CNRS/AIST)
+// Antonio El Khoury (JRL/LAAS, CNRS/AIST)
 // Sébastien Barthélémy (Aldebaran Robotics)
 //
 // This file is part of metapod.
@@ -81,13 +82,22 @@ namespace metapod
       // iX0 = iXλ(i) * λ(i)X0
       // vi = iXλ(i) * vλ(i) + vj
       // ai = iXλ(i) * aλ(i) + Si * ddqi + cj + vi x vj
-      Node::Body::iX0 = Node::Joint::sXp*Node::Body::Parent::iX0;
-      Node::Body::vi = Node::Joint::sXp*Node::Body::Parent::vi
-                     + Node::Joint::vj;
-      Node::Body::ai = sum(Node::Joint::sXp*Node::Body::Parent::ai,
-                           Sddqi,
-                           Node::Joint::cj,
-                           (Node::Body::vi^Node::Joint::vj));
+      if (Node::Joint::NBDOF!=0)
+	{
+	  Node::Body::iX0 = Node::Joint::sXp*Node::Body::Parent::iX0;
+	  Node::Body::vi = Node::Joint::sXp*Node::Body::Parent::vi
+	    + Node::Joint::vj;
+	  Node::Body::ai = sum(Node::Joint::sXp*Node::Body::Parent::ai,
+			       Sddqi,
+			       Node::Joint::cj,
+			       (Node::Body::vi^Node::Joint::vj));
+	}
+      else
+	{
+	  Node::Body::iX0 = Node::Joint::Xt*Node::Body::Parent::iX0;
+	  Node::Body::vi = Node::Joint::Xt*Node::Body::Parent::vi;
+	  Node::Body::ai = Node::Joint::Xt*Node::Body::Parent::ai;
+	}
 
       // fi = Ii * ai + vi x* (Ii * vi) - iX0* * fix
       Node::Joint::f = sum((Node::Body::I * Node::Body::ai),
@@ -103,10 +113,17 @@ namespace metapod
 
       // backward computations follow
       // τi = SiT * fi
-      Node::Joint::torque = Node::Joint::S.S().transpose()*Node::Joint::f.toVector();
       // fλ(i) = fλ(i) + λ(i)Xi* * fi
-      Node::Body::Parent::Joint::f = Node::Body::Parent::Joint::f
-                                   + Node::Joint::sXp.applyInv(Node::Joint::f);
+      if (Node::Joint::NBDOF!=0)
+	{
+	  Node::Joint::torque = Node::Joint::S.S().transpose()
+	    * Node::Joint::f.toVector();
+	  Node::Body::Parent::Joint::f = Node::Body::Parent::Joint::f
+	    + Node::Joint::sXp.applyInv(Node::Joint::f);
+	}
+      else
+	Node::Body::Parent::Joint::f = Node::Body::Parent::Joint::f
+	  + Node::Joint::Xt.applyInv(Node::Joint::f);
     }
   };
 
@@ -129,24 +146,35 @@ namespace metapod
 	  Sddqi = Node::Joint::S.S() * ddqi;
 	}
 
-
       // iX0 = iXλ(i)
       // vi = vj
       // ai = Si * ddqi + cj + vi x vj (with a0 = -g, cf. Rigid Body Dynamics
       // Algorithms for a detailed explanation of how the gravity force is
       // applied)
-      Node::Body::iX0 = Node::Joint::sXp;
-      Node::Body::vi = Node::Joint::vj;
-      Node::Body::ai = sum(Sddqi,
-			   Node::Joint::cj,
-			   (Node::Body::vi^Node::Joint::vj),
-			   (Node::Body::iX0*minus_g));
-      
+      if (Node::Joint::NBDOF!=0)
+	{
+	  Node::Body::iX0 = Node::Joint::sXp;
+	  Node::Body::vi = Node::Joint::vj;
+	  Node::Body::ai = sum(Sddqi,
+			       Node::Joint::cj,
+			       (Node::Body::vi^Node::Joint::vj),
+			       (Node::Body::iX0*minus_g));
+	}
+      else
+	{
+	  Node::Body::iX0 = Node::Joint::Xt;
+	  Node::Body::vi = Spatial::Motion::Zero();
+	  Node::Body::ai = minus_g;
+	}
+
       // fi = Ii * ai + vi x* (Ii * vi) - iX0* * fix
-      Node::Joint::f = sum((Node::Body::I * Node::Body::ai),
-			   (Node::Body::vi^( Node::Body::I * Node::Body::vi )),
-			   (Node::Body::iX0 * -Node::Body::Fext));
-      
+      if (Node::Joint::NBDOF!=0)
+	Node::Joint::f = sum((Node::Body::I * Node::Body::ai),
+			     (Node::Body::vi^( Node::Body::I * Node::Body::vi )),
+			     (Node::Body::iX0 * -Node::Body::Fext));
+      else
+	Node::Joint::f = Node::Body::I * Node::Body::ai
+	  -Node::Body::Fext;
 
       // recursion on children
       rnea_internal< typename Node::Child0, confVector, true >::run(q, dq, ddq);
@@ -157,8 +185,9 @@ namespace metapod
 
       // backward computations follow
       // τi = SiT * fi
-      Node::Joint::torque = Node::Joint::S.transpose()
-                          * Node::Joint::f.toVector();
+      if (Node::Joint::NBDOF!=0)
+	Node::Joint::torque = Node::Joint::S.transpose()
+	  * Node::Joint::f.toVector();
     }
   };
 
