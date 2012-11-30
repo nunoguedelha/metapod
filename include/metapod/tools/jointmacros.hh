@@ -254,6 +254,22 @@ namespace metapod
     matrix6d classname::dotS = matrix6d::Zero();                    \
     matrix6d classname::F                                           \
 
+  // Create a JOINT_FIXED joint class
+  # define JOINT_FIXED(classname)                                   \
+    class classname                                                 \
+    {                                                               \
+      public:                                                       \
+      enum { NBDOF = 0 };                                           \
+      static const std::string name;                                \
+      static const int label;                                       \
+      static const Spatial::Transform Xt;                           \
+      static Spatial::Force f;                                      \
+    };                                                              \
+    struct e_n_d__w_i_t_h__s_e_m_i_c_o_l_o_n
+
+  # define INITIALIZE_JOINT_FIXED(classname)                        \
+    Spatial::Force classname::f;                                    \
+
 } // end of namespace metapod.
 
 #endif
