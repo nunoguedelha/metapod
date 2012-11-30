@@ -201,7 +201,7 @@ namespace metapod
 	  block<6,Joint::NBDOF>(0,Joint::positionInConf
 				+ offset
 				- 6*(1 - includeFreeFlyer)) =
-	  - Joint::applyToS(Body::iX0.inverse ().toPointFrame (p));
+	  - Body::iX0.inverse ().toPointFrame (p).apply(Joint::S);
 
       // Recurse over body parent.
       jac_point_chain_internal_start<Robot, typename Body::Parent,
@@ -257,7 +257,7 @@ namespace metapod
 	  block<6,Joint::NBDOF>(0,Joint::positionInConf
 				+ offset
 				- 6*(1 - includeFreeFlyer)) =
-	  Joint::applyToS(Body::iX0.inverse ().toPointFrame (p));
+	  Body::iX0.inverse ().toPointFrame (p).apply(Joint::S);
 
       // Recurse over body parent.
       jac_point_chain_internal_end< Robot, typename Body::Parent,
