@@ -264,7 +264,7 @@ namespace metapod
     Spatial::Transform classname::sXp;                              \
     Spatial::Transform classname::Xj;                               \
     const Spatial::ConstraintMotionFixed classname::S;		    \
-    const vector6d classname::dotS =vector6d::Zero(); 
+    const vector6d classname::dotS =vector6d::Zero()
 
 } // end of namespace metapod.
 

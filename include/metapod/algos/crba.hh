@@ -70,12 +70,18 @@ namespace metapod
       crba_forward_propagation< Robot, typename Node::Child4 >::run();
 
       if(Node::Body::HAS_PARENT)
-	if (Node::Joint::NBDOF!=0)
-	  Node::Body::Parent::Iic = Node::Body::Parent::Iic
-	    + Node::Joint::sXp.applyInv(Node::Body::Iic);
-	else
-	  Node::Body::Parent::Iic = Node::Body::Parent::Iic
-	    + Node::Joint::Xt.applyInv(Node::Body::Iic);
+	{
+	  if (Node::Joint::NBDOF!=0)
+	    {
+	      Node::Body::Parent::Iic = Node::Body::Parent::Iic
+		+ Node::Joint::sXp.applyInv(Node::Body::Iic);
+	    }
+	  else
+	    {
+	      Node::Body::Parent::Iic = Node::Body::Parent::Iic
+		+ Node::Joint::Xt.applyInv(Node::Body::Iic);
+	    }
+	}
 
       if (Node::Joint::NBDOF!=0)
 	{
