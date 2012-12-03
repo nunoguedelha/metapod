@@ -49,6 +49,14 @@ namespace metapod
     // Initialization of the robot global constants
     Eigen::Matrix< FloatType, Robot::NBDOF, Robot::NBDOF > Robot::H;
 
+    INITIALIZE_JOINT_FIXED(GALILEAN);
+    const std::string GALILEAN::name = "GALILEAN";
+    const Spatial::Transform GALILEAN::Xt = Spatial::Transform(
+      matrix3dMaker(1, 0, 0,
+                    0, 1, 0,
+                    0, 0, 1),
+      vector3d(0, 0, 0));
+    
     INITIALIZE_JOINT_REVOLUTE_AXIS_ANY(SHOULDER, 1, 0, 0);
     const std::string SHOULDER::name = "SHOULDER";
     const int SHOULDER::label = 1;
@@ -79,9 +87,22 @@ namespace metapod
                     0, 0, 1),
       vector3d(0, 0, -0.4));
 
+    INITIALIZE_BODY(EARTH);
+    const std::string EARTH::name = "EARTH";
+    const int EARTH::label = 0;
+    const FloatType EARTH::mass = 5.972E24 ;
+    const vector3d EARTH::CoM = vector3d(0,0,-6371);
+    const matrix3d EARTH::inertie = matrix3dMaker(
+      4.68703125e-02, 0.0,            0.0,
+      0.0,            4.68703125e-02, 0.0,
+      0.0,            0.0,            9.28125000e-04);
+    Spatial::Inertia EARTH::I = spatialInertiaMaker(EARTH::mass,
+                                                  EARTH::CoM,
+                                                  EARTH::inertie);
+
     INITIALIZE_BODY(ARM);
     const std::string ARM::name = "ARM";
-    const int ARM::label = 0;
+    const int ARM::label = 1;
     const FloatType ARM::mass = 2.75;
     const vector3d ARM::CoM = vector3d(0, 0, -0.225);
     const matrix3d ARM::inertie = matrix3dMaker(
@@ -94,7 +115,7 @@ namespace metapod
 
     INITIALIZE_BODY(FOREARM);
     const std::string FOREARM::name = "FOREARM";
-    const int FOREARM::label = 1;
+    const int FOREARM::label = 2;
     const FloatType FOREARM::mass = 1.75;
     const vector3d FOREARM::CoM = vector3d(0, 0, -0.2);
     const matrix3d FOREARM::inertie = matrix3dMaker(
@@ -107,7 +128,7 @@ namespace metapod
 
     INITIALIZE_BODY(HAND);
     const std::string HAND::name = "HAND";
-    const int HAND::label = 2;
+    const int HAND::label = 3;
     const FloatType HAND::mass = 0.5;
     const vector3d HAND::CoM = vector3d(0, 0, -0.075);
     const matrix3d HAND::inertie = matrix3dMaker(

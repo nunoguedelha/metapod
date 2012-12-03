@@ -45,6 +45,10 @@ namespace metapod
         ConstraintMotionOneAxis(){ 
 	  m_S(axis) = 1.0;
 	}
+      
+      vector6d operator*(const Eigen::Matrix< FloatType, 1, 1 > &ddqi) const
+      { vector6d tmp=ddqi(0,0)*m_S;
+	return tmp; } 
 
       private:
         vector6d m_S;

@@ -26,4 +26,6 @@
 #include "metapod/tools/spatial/cm-oneaxis.hh"
 #include "metapod/tools/spatial/cm-freeflyer.hh"
 #include "metapod/tools/spatial/cm-anyaxis.hh"
+#include "metapod/tools/spatial/cm-fixed.hh"
+
 #endif /* METAPOD_SPATIAL_ALGEBRA_CONSTRAINT_MOTION_HH */

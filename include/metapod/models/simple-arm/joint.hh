@@ -31,6 +31,7 @@ namespace metapod
 {
   namespace simple_arm
   {
+    JOINT_FIXED(GALILEAN);
     JOINT_REVOLUTE_AXIS_ANY(SHOULDER, 1, 0, 0);
     JOINT_REVOLUTE_AXIS_ANY(ELBOW, 1, 0, 0);
     JOINT_REVOLUTE_AXIS_ANY(WRIST, 1, 0, 0);

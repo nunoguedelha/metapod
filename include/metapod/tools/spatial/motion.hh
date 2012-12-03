@@ -60,6 +60,13 @@ namespace metapod
           return *this;
         }
 
+        Motion & operator=(const vector0d & )
+        {
+          m_w = vector3d::Zero();
+          m_v = vector3d::Zero();
+          return *this;
+        }
+
         Motion operator-() const
         {
           return Motion(-m_w, -m_v);

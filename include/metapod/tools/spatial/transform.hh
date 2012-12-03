@@ -22,9 +22,7 @@
 #ifndef METAPOD_SPATIAL_ALGEBRA_TRANSFORM_HH
 # define METAPOD_SPATIAL_ALGEBRA_TRANSFORM_HH
 
-# include <metapod/tools/spatial/cm-anyaxis.hh>
-# include <metapod/tools/spatial/cm-oneaxis.hh>
-# include <metapod/tools/spatial/cm-freeflyer.hh>
+#include "metapod/tools/spatial/constraintmotion.hh"
 
 namespace metapod
 {
@@ -102,7 +100,7 @@ namespace metapod
         /// Sb = bXa.apply(Sa)
         ///
         /// Specialization for JOINT_REVOLUTE_AXIS_X
-        vector6d apply(const ConstraintMotionAxisX& S) const
+        vector6d apply(const ConstraintMotionAxisX& ) const
         {
 	  vector6d tmp = vector6d::Zero();
 	  tmp.head<3>() = m_E.col(0);
@@ -120,6 +118,13 @@ namespace metapod
 	  tmp.bottomLeftCorner<3,3>() = m_E * S.S().bottomLeftCorner<3,3>();
 	  tmp.bottomRightCorner<3,3>()
 	    = -m_E * Spatial::skew(m_r) * S.S().topRightCorner<3,3>();
+	  return tmp;
+        }
+
+        /// Specialization for JOINT_FIXED
+        vector6_0d apply(const ConstraintMotionFixed& ) const
+        {
+	  vector6_0d tmp =vector6_0d::Zero();
 	  return tmp;
         }
 

@@ -30,13 +30,19 @@ namespace metapod
     class ConstraintMotionAnyAxis
     {
       public:
-        // Constructors
+      // Constructors
       ConstraintMotionAnyAxis(double axisx, 
 			      double axisy,
 			      double axisz)
       { m_S(0) = axisx; m_S(1) = axisy; m_S(2) = axisz;};
 
       vector6d operator*(double d) const;
+      vector6d operator*(const Eigen::Matrix< FloatType, 1, 1 > &ddqi) const
+      {       
+	vector6d tmp = vector6d::Zero();
+	tmp.segment<3>(0) = ddqi(0,0)*m_S.segment<3>(0);                    
+	return tmp;                                                   
+      } 
 
       private:
         vector6d m_S;
@@ -78,6 +84,8 @@ namespace metapod
       OperatorMul<vector6d,Inertia, ConstraintMotionAnyAxis > om;
       return om.mul(m,a);
     }
+
+    
   }
 }
 

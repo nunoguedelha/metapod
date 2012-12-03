@@ -236,11 +236,35 @@ namespace metapod
       static const int label;                                       \
       static const Spatial::Transform Xt;                           \
       static Spatial::Force f;                                      \
+      /* Those fields are never used they are here only for */	    \
+      /* making the compiler happy */				    \
+      static Spatial::Transform sXp;                                \
+      static vector6_0d F;                                          \
+      static const Spatial::ConstraintMotionFixed S;                \
+      static const vector6d dotS;                                   \
+      static const int positionInConf;                              \
+      static Spatial::Transform Xj;				    \
+      static Spatial::Motion cj;                                    \
+      static Spatial::Motion vj;                                    \
+      static vector0d torque;                                       \
+                                                                    \
+      static void bcalc(const vector0d & );			    \
+      static void jcalc(const vector0d & , const vector0d & );	    \
     };                                                              \
+    inline void classname::bcalc(const vector0d & )		    \
+    {}								    \
+    inline void classname::jcalc(const vector0d & ,		    \
+                                 const vector0d & )		    \
+    {}								    \
     struct e_n_d__w_i_t_h__s_e_m_i_c_o_l_o_n
 
   # define INITIALIZE_JOINT_FIXED(classname)                        \
     Spatial::Force classname::f;                                    \
+    vector0d classname::torque;					    \
+    Spatial::Transform classname::sXp;                              \
+    Spatial::Transform classname::Xj;                               \
+    const Spatial::ConstraintMotionFixed classname::S;		    \
+    const vector6d classname::dotS =vector6d::Zero(); 
 
 } // end of namespace metapod.
 
