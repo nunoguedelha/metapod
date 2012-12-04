@@ -45,7 +45,7 @@ namespace metapod
         typedef Eigen::Matrix< FloatType, NBDOF, 1 > confVector;
 
         // Definition of the multibody tree as a type.
-        typedef Node<EARTH,
+        typedef Node<BASE,
                	     GALILEAN,
 	             Node< ARM,
 	                   SHOULDER,

@@ -119,6 +119,26 @@ namespace metapod
   template<>
   inline void printTorques<NC>(std::ostream &){}
 
+  // Print Torques of the robot in a stream.
+  template< typename Tree >
+  void printForces(std::ostream & os)
+  {
+    typedef Tree Node;
+
+    os << Node::Joint::name << "\n"
+       << Node::Joint::f << "\n"
+       << std::endl;
+
+    printForces<typename Node::Child0>(os);
+    printForces<typename Node::Child1>(os);
+    printForces<typename Node::Child2>(os);
+    printForces<typename Node::Child3>(os);
+    printForces<typename Node::Child4>(os);
+  }
+
+  template<>
+  inline void printForces<NC>(std::ostream &){}
+
   // Get Torques of the robot.
   template< typename Tree >
   void getTorques(vectorN& torques, unsigned& i)

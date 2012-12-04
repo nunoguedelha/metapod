@@ -87,18 +87,18 @@ namespace metapod
                     0, 0, 1),
       vector3d(0, 0, -0.4));
 
-    INITIALIZE_BODY(EARTH);
-    const std::string EARTH::name = "EARTH";
-    const int EARTH::label = 0;
-    const FloatType EARTH::mass = 5.972E24 ;
-    const vector3d EARTH::CoM = vector3d(0,0,-6371);
-    const matrix3d EARTH::inertie = matrix3dMaker(
-      4.68703125e-02, 0.0,            0.0,
-      0.0,            4.68703125e-02, 0.0,
-      0.0,            0.0,            9.28125000e-04);
-    Spatial::Inertia EARTH::I = spatialInertiaMaker(EARTH::mass,
-                                                  EARTH::CoM,
-                                                  EARTH::inertie);
+    INITIALIZE_BODY(BASE);
+    const std::string BASE::name = "BASE";
+    const int BASE::label = 0;
+    const FloatType BASE::mass = 10.0 ;
+    const vector3d BASE::CoM = vector3d(0,0,0.5);
+    const matrix3d BASE::inertie = matrix3dMaker(
+      1.0 , 0.0,            0.0,
+      0.0,           1.0, 0.0,
+      0.0,            0.0,            1.0);
+    Spatial::Inertia BASE::I = spatialInertiaMaker(BASE::mass,
+                                                  BASE::CoM,
+                                                  BASE::inertie);
 
     INITIALIZE_BODY(ARM);
     const std::string ARM::name = "ARM";
