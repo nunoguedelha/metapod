@@ -35,6 +35,9 @@ namespace metapod
     * and recursively proceeds on the Nodes.
     */
   template< typename Tree, typename confVector, bool HasParent = false >
+  struct rnea_parent{};
+
+  template< typename Tree, typename confVector, bool HasParent = false, int nbDofInJoint =0>
   struct rnea_internal {};
 
   template< typename Robot, bool jcalc = true > struct rnea{};
@@ -46,7 +49,7 @@ namespace metapod
                     const typename Robot::confVector & ddq)
     {
       jcalc< Robot >::run(q, dq);
-      rnea_internal< typename Robot::Tree, typename Robot::confVector >::run(q, dq, ddq);
+      rnea_parent< typename Robot::Tree, typename Robot::confVector >::run(q, dq, ddq);
     }
   };
 
@@ -56,12 +59,12 @@ namespace metapod
                     const typename Robot::confVector & dq,
                     const typename Robot::confVector & ddq)
     {
-      rnea_internal< typename Robot::Tree, typename Robot::confVector >::run(q, dq, ddq);
+      rnea_parent< typename Robot::Tree, typename Robot::confVector >::run(q, dq, ddq);
     }
   };
 
   template< typename Tree, typename confVector >
-  struct rnea_internal< Tree, confVector, true >
+  struct rnea_parent< Tree, confVector, true >
   {
     typedef Tree Node;
 
@@ -69,36 +72,52 @@ namespace metapod
                     const confVector & dq,
                     const confVector & ddq) __attribute__ ((hot))
     {
+      rnea_internal<Tree,confVector,true,Node::Joint::NBDOF>::run(q,dq,ddq);
+    }
+  };
+
+  template< typename Tree, typename confVector >
+  struct rnea_parent< Tree, confVector, false >
+  {
+    typedef Tree Node;
+
+    static void run(const confVector & q,
+                    const confVector & dq,
+                    const confVector & ddq) __attribute__ ((hot))
+    {
+      rnea_internal<Tree,confVector,false,Node::Joint::NBDOF>::run(q,dq,ddq);
+    }
+  };
+
+
+  template< typename Tree, typename confVector, int nbDofInJoint >
+  struct rnea_internal< Tree, confVector, true, nbDofInJoint >
+  {
+    typedef Tree Node;
+
+    static void run(const confVector & q,
+                    const confVector & dq,
+                    const confVector & ddq) __attribute__ ((hot))
+    {
+
       // Extract subvector corresponding to current Node
       Spatial::Motion Sddqi;
 
-      if (Node::Joint::NBDOF!=0)
-	{
-	  Eigen::Matrix< FloatType, Node::Joint::NBDOF, 1 > ddqi =
-	    ddq.template segment<Node::Joint::NBDOF>(Node::Joint::positionInConf);
-	  Sddqi = Node::Joint::S * ddqi;
-
-	}
+      Eigen::Matrix< FloatType, Node::Joint::NBDOF, 1 > ddqi =
+	ddq.template segment<Node::Joint::NBDOF>(Node::Joint::positionInConf);
+      Sddqi = Node::Joint::S * ddqi;
+      
 
       // iX0 = iXλ(i) * λ(i)X0
       // vi = iXλ(i) * vλ(i) + vj
       // ai = iXλ(i) * aλ(i) + Si * ddqi + cj + vi x vj
-      if (Node::Joint::NBDOF!=0)
-	{
-	  Node::Body::iX0 = Node::Joint::sXp*Node::Body::Parent::iX0;
-	  Node::Body::vi = Node::Joint::sXp*Node::Body::Parent::vi
-	    + Node::Joint::vj;
-	  Node::Body::ai = sum(Node::Joint::sXp*Node::Body::Parent::ai,
-			       Sddqi,
-			       Node::Joint::cj,
-			       (Node::Body::vi^Node::Joint::vj));
-	}
-      else
-	{
-	  Node::Body::iX0 = Node::Joint::Xt*Node::Body::Parent::iX0;
-	  Node::Body::vi = Node::Joint::Xt*Node::Body::Parent::vi;
-	  Node::Body::ai = Node::Joint::Xt*Node::Body::Parent::ai;
-	}
+      Node::Body::iX0 = Node::Joint::sXp*Node::Body::Parent::iX0;
+      Node::Body::vi = Node::Joint::sXp*Node::Body::Parent::vi
+	+ Node::Joint::vj;
+      Node::Body::ai = sum(Node::Joint::sXp*Node::Body::Parent::ai,
+			   Sddqi,
+			   Node::Joint::cj,
+			   (Node::Body::vi^Node::Joint::vj));
 
       // fi = Ii * ai + vi x* (Ii * vi) - iX0* * fix
       Node::Joint::f = sum((Node::Body::I * Node::Body::ai),
@@ -106,30 +125,58 @@ namespace metapod
                            (Node::Body::iX0 * -Node::Body::Fext ));
 
       // recursion on children
-      rnea_internal< typename Node::Child0, confVector, true >::run(q, dq, ddq);
-      rnea_internal< typename Node::Child1, confVector, true >::run(q, dq, ddq);
-      rnea_internal< typename Node::Child2, confVector, true >::run(q, dq, ddq);
-      rnea_internal< typename Node::Child3, confVector, true >::run(q, dq, ddq);
-      rnea_internal< typename Node::Child4, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child0, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child1, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child2, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child3, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child4, confVector, true >::run(q, dq, ddq);
 
       // backward computations follow
       // τi = SiT * fi
       // fλ(i) = fλ(i) + λ(i)Xi* * fi
-      if (Node::Joint::NBDOF!=0)
-	{
-	  Node::Joint::torque = Node::Joint::S.S().transpose()
-	    * Node::Joint::f.toVector();
-	  Node::Body::Parent::Joint::f = Node::Body::Parent::Joint::f
-	    + Node::Joint::sXp.applyInv(Node::Joint::f);
-	}
-      else
-	Node::Body::Parent::Joint::f = Node::Body::Parent::Joint::f
-	  + Node::Joint::Xt.applyInv(Node::Joint::f);
+      Node::Joint::torque = Node::Joint::S.S().transpose()
+	* Node::Joint::f.toVector();
+      Node::Body::Parent::Joint::f = Node::Body::Parent::Joint::f
+	+ Node::Joint::sXp.applyInv(Node::Joint::f);
     }
   };
 
   template< typename Tree, typename confVector >
-  struct rnea_internal< Tree, confVector, false >
+  struct rnea_internal< Tree, confVector, true, 0 >
+  {
+    typedef Tree Node;
+
+    static void run(const confVector & q,
+                    const confVector & dq,
+                    const confVector & ddq) __attribute__ ((hot))
+    {
+
+      // Extract subvector corresponding to current Node
+      Spatial::Motion Sddqi;
+
+      Node::Body::iX0 = Node::Joint::Xt*Node::Body::Parent::iX0;
+      Node::Body::vi = Node::Joint::Xt*Node::Body::Parent::vi;
+      Node::Body::ai = Node::Joint::Xt*Node::Body::Parent::ai;
+
+      // fi = Ii * ai + vi x* (Ii * vi) - iX0* * fix
+      Node::Joint::f = sum((Node::Body::I * Node::Body::ai),
+                           (Node::Body::vi^( Node::Body::I * Node::Body::vi )),
+                           (Node::Body::iX0 * -Node::Body::Fext ));
+
+      // recursion on children
+      rnea_parent< typename Node::Child0, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child1, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child2, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child3, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child4, confVector, true >::run(q, dq, ddq);
+
+      Node::Body::Parent::Joint::f = Node::Body::Parent::Joint::f
+	+ Node::Joint::Xt.applyInv(Node::Joint::f);
+    }
+  };
+
+  template< typename Tree, typename confVector, int nbDofInJoint >
+  struct rnea_internal< Tree, confVector, false, nbDofInJoint >
   {
     typedef Tree Node;
 
@@ -140,63 +187,80 @@ namespace metapod
       // Extract subvector corresponding to current Node
       Spatial::Motion Sddqi;
 
-      if (Node::Joint::NBDOF!=0)
-	{
-	  Eigen::Matrix< FloatType, Node::Joint::NBDOF, 1 > ddqi =
-	    ddq.template segment<Node::Joint::NBDOF>(Node::Joint::positionInConf);
-
-	  Sddqi = Node::Joint::S * ddqi;
-	}
+      Eigen::Matrix< FloatType, Node::Joint::NBDOF, 1 > ddqi =
+	ddq.template segment<Node::Joint::NBDOF>(Node::Joint::positionInConf);
+      
+      Sddqi = Node::Joint::S * ddqi;
 
       // iX0 = iXλ(i)
       // vi = vj
       // ai = Si * ddqi + cj + vi x vj (with a0 = -g, cf. Rigid Body Dynamics
       // Algorithms for a detailed explanation of how the gravity force is
       // applied)
-      if (Node::Joint::NBDOF!=0)
-	{
-	  Node::Body::iX0 = Node::Joint::sXp;
-	  Node::Body::vi = Node::Joint::vj;
-	  Node::Body::ai = sum(Sddqi,
-			       Node::Joint::cj,
-			       (Node::Body::vi^Node::Joint::vj),
-			       (Node::Body::iX0*minus_g));
-	}
-      else
-	{
-	  Node::Body::iX0 = Node::Joint::Xt;
-	  Node::Body::vi = Spatial::Motion::Zero();
-	  Node::Body::ai = minus_g;
-	}
-
+      Node::Body::iX0 = Node::Joint::sXp;
+      Node::Body::vi = Node::Joint::vj;
+      Node::Body::ai = sum(Sddqi,
+			   Node::Joint::cj,
+			   (Node::Body::vi^Node::Joint::vj),
+			   (Node::Body::iX0*minus_g));
+      
       // fi = Ii * ai + vi x* (Ii * vi) - iX0* * fix
-      if (Node::Joint::NBDOF!=0)
-	Node::Joint::f = sum((Node::Body::I * Node::Body::ai),
-			     (Node::Body::vi^( Node::Body::I * Node::Body::vi )),
-			     (Node::Body::iX0 * -Node::Body::Fext));
-      else
-	Node::Joint::f = Node::Body::I * Node::Body::ai
-	  -Node::Body::Fext;
+      Node::Joint::f = sum((Node::Body::I * Node::Body::ai),
+			   (Node::Body::vi^( Node::Body::I * Node::Body::vi )),
+			   (Node::Body::iX0 * -Node::Body::Fext));
 
       // recursion on children
-      rnea_internal< typename Node::Child0, confVector, true >::run(q, dq, ddq);
-      rnea_internal< typename Node::Child1, confVector, true >::run(q, dq, ddq);
-      rnea_internal< typename Node::Child2, confVector, true >::run(q, dq, ddq);
-      rnea_internal< typename Node::Child3, confVector, true >::run(q, dq, ddq);
-      rnea_internal< typename Node::Child4, confVector, true >::run(q, dq, ddq);
-
+      rnea_parent< typename Node::Child0, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child1, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child2, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child3, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child4, confVector, true >::run(q, dq, ddq);
+      
       // backward computations follow
       // τi = SiT * fi
-      if (Node::Joint::NBDOF!=0)
-	Node::Joint::torque = Node::Joint::S.transpose()
-	  * Node::Joint::f.toVector();
+      Node::Joint::torque = Node::Joint::S.transpose()
+	* Node::Joint::f.toVector();
+    }
+  };
+
+  template< typename Tree, typename confVector >
+  struct rnea_internal< Tree, confVector, false, 0 >
+  {
+    typedef Tree Node;
+
+    static void run(const confVector & q,
+                    const confVector & dq,
+                    const confVector & ddq)
+    {
+      // Extract subvector corresponding to current Node
+      Spatial::Motion Sddqi;
+
+      // iX0 = iXλ(i)
+      // vi = vj
+      // ai = Si * ddqi + cj + vi x vj (with a0 = -g, cf. Rigid Body Dynamics
+      // Algorithms for a detailed explanation of how the gravity force is
+      // applied)
+      Node::Body::iX0 = Node::Joint::Xt;
+      Node::Body::vi = Spatial::Motion::Zero();
+      Node::Body::ai = minus_g;
+
+      Node::Joint::f = Node::Body::I * Node::Body::ai
+	-Node::Body::Fext;
+
+      // recursion on children
+      rnea_parent< typename Node::Child0, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child1, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child2, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child3, confVector, true >::run(q, dq, ddq);
+      rnea_parent< typename Node::Child4, confVector, true >::run(q, dq, ddq);
+
     }
   };
 
   /**
     \brief  Specialization, to stop recursion on leaves of the Tree
   */
-  template< typename confVector > struct rnea_internal< NC, confVector, true >
+  template< typename confVector > struct rnea_parent< NC, confVector, true >
   {
     static void run(const confVector &,
                     const confVector &,
