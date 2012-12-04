@@ -29,10 +29,18 @@
 
 namespace metapod
 {
-  template< typename Robot, typename Tree > struct crba_forward_propagation;
+  template< typename Robot, typename Tree > 
+  struct crba_forward_propagation;
+
+  template< typename Robot, typename Tree, int nbDofInJoint >
+  struct crba_forward_propagation_internal;
 
   template< typename Robot, typename BI, typename BJ, typename Parent >
   struct crba_backward_propagation;
+
+  template< typename Robot, typename BI, typename BJ, typename Parent,
+	  int nbDofInParentJoint >
+  struct crba_backward_propagation_internal;
 
   template< typename Robot, bool jcalc = true > struct crba {};
 
@@ -56,6 +64,21 @@ namespace metapod
   template < typename Robot, typename Tree >
   struct crba_forward_propagation
   {
+    static void run()
+    {
+      crba_forward_propagation_internal< Robot, Tree, Tree::Joint::NBDOF >::run();
+    }
+  };
+
+  template< typename Robot >
+  struct crba_forward_propagation< Robot, NC >
+  {
+    static void run() {}
+  };
+
+  template < typename Robot, typename Tree, int nbDofInJoint >
+  struct crba_forward_propagation_internal
+  {
     typedef Tree Node;
     typedef typename Node::Body BI;
 
@@ -71,22 +94,9 @@ namespace metapod
 
       if(Node::Body::HAS_PARENT)
 	{
-	  if (Node::Joint::NBDOF!=0)
-	    {
-	      Node::Body::Parent::Iic = Node::Body::Parent::Iic
-		+ Node::Joint::sXp.applyInv(Node::Body::Iic);
-	    }
-	  else
-	    {
-	      Node::Body::Parent::Iic = Node::Body::Parent::Iic
-		+ Node::Joint::Xt.applyInv(Node::Body::Iic);
-	    }
-	}
-
-      if (Node::Joint::NBDOF!=0)
-	{
+	  Node::Body::Parent::Iic = Node::Body::Parent::Iic
+	    + Node::Joint::sXp.applyInv(Node::Body::Iic);
 	  Node::Body::Joint::F = Node::Body::Iic * Node::Joint::S;
-
 	  Robot::H.template block<Node::Joint::NBDOF, Node::Joint::NBDOF>
 	    (Node::Joint::positionInConf, Node::Joint::positionInConf)
 	    = Node::Joint::S.transpose() * Node::Body::Joint::F;
@@ -95,15 +105,44 @@ namespace metapod
 	}
     }
   };
+  
+  template < typename Robot, typename Tree >
+  struct crba_forward_propagation_internal< Robot, Tree, 0 >
+   {
+     typedef Tree Node;
+     static void run()
+     {
+       Node::Body::Iic = Node::Body::I;
+       crba_forward_propagation< Robot, typename Node::Child0 >::run();
+       crba_forward_propagation< Robot, typename Node::Child1 >::run();
+       crba_forward_propagation< Robot, typename Node::Child2 >::run();
+       crba_forward_propagation< Robot, typename Node::Child3 >::run();
+       crba_forward_propagation< Robot, typename Node::Child4 >::run();
+       
+       Node::Body::Parent::Iic = Node::Body::Parent::Iic
+	 + Node::Joint::Xt.applyInv(Node::Body::Iic);
+     }
+   };
 
-  template< typename Robot >
-  struct crba_forward_propagation< Robot, NC >
-  {
-    static void run() {}
-  };
 
   template< typename Robot, typename BI, typename BJ, typename Parent >
   struct crba_backward_propagation
+  {
+    static void run()
+    {
+      crba_backward_propagation_internal<Robot, BI, BJ,
+	Parent, Parent::Joint::NBDOF>::run();
+    }
+  };
+  template< typename Robot, typename BI, typename BJ >
+  struct crba_backward_propagation< Robot, BI, BJ, NP >
+  {
+    static void run() {}
+  };
+  
+  template< typename Robot, typename BI, typename BJ, typename Parent,
+	    int nbDofInParentJoint >
+  struct crba_backward_propagation_internal
   {
     typedef BI Body_i;
     typedef BJ Body_j;
@@ -132,9 +171,9 @@ namespace metapod
     }
   };
 
-  template< typename Robot, typename BI, typename BJ >
-  struct crba_backward_propagation< Robot, BI, BJ, NP >
-  {
+  template< typename Robot, typename BI, typename BJ, typename Parent >
+  struct crba_backward_propagation_internal< Robot, BI, BJ, Parent, 0 >
+  {  
     static void run() {}
   };
 
