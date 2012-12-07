@@ -119,9 +119,9 @@ namespace metapod
 
       // Call internal jacobian routines.
       jac_point_chain_internal_start< Robot, StartBody,
-        offset, includeFreeFlyer >::run(label, p, J);
+        offset, includeFreeFlyer, StartBody::Joint::NBDOF >::run(label, p, J);
       jac_point_chain_internal_end< Robot, EndBody,
-        offset, includeFreeFlyer >::run(label, p, J);
+        offset, includeFreeFlyer, EndBody::Joint::NBDOF >::run(label, p, J);
       jac_point_chain_internal_freeflyer< Robot, StartBody,
         offset, includeFreeFlyer >::run(p, J);
     }
@@ -159,9 +159,9 @@ namespace metapod
 
       // Call internal jacobian routines.
       jac_point_chain_internal_start< Robot, StartBody,
-        offset, includeFreeFlyer >::run(label, p, J);
+        offset, includeFreeFlyer, StartBody::Joint::NBDOF >::run(label, p, J);
       jac_point_chain_internal_end< Robot, EndBody,
-        offset, includeFreeFlyer >::run(label, p, J);
+        offset, includeFreeFlyer, EndBody::Joint::NBDOF >::run(label, p, J);
       jac_point_chain_internal_freeflyer< Robot, StartBody,
         offset, includeFreeFlyer >::run(p, J);
     }
