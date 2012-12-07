@@ -30,8 +30,12 @@
 namespace metapod
 {
 
+
+  template < typename Node, int nbDofInJoint=0 > 
+  struct PrintStateVisitor_internal;
+
   // Print state of the robot in a stream.
-  template < typename Node > struct PrintStateVisitor
+  template < typename Node, int nbDofInJoint > struct PrintStateVisitor_internal
   {
     static void visit(std::ostream & os)
     {
@@ -48,6 +52,35 @@ namespace metapod
 	 << "f :\n" << Node::Joint::f << "\n"
 	 << "τ :\n" << Node::Joint::torque << "\n"
 	 << std::endl;
+    }
+  };
+
+  // Print state of the robot in a stream.
+  template < typename Node> struct PrintStateVisitor_internal<Node,0>
+  {
+    static void visit(std::ostream & os)
+    {
+      os << Node::Body::name << " :\n"
+	 << "sXp :\n" << Node::Joint::sXp << "\n"
+	 << "Xt :\n" << Node::Joint::Xt << "\n"
+	 << "Xj :\n" << Node::Joint::Xj << "\n"
+	 << "dotS :\n" << Node::Joint::dotS << "\n"
+	 << "iX0 :\n" << Node::Body::iX0 << "\n"
+	 << "vi :\n" << Node::Body::vi << "\n"
+	 << "ai :\n" << Node::Body::ai << "\n"
+	 << "I :\n" << Node::Body::I << "\n"
+	 << "f :\n" << Node::Joint::f << "\n"
+	 << "τ :\n" << Node::Joint::torque << "\n"
+	 << std::endl;
+    }
+  };
+  
+  // Print state of the robot in a stream.
+  template < typename Node > struct PrintStateVisitor
+  {
+    static void visit(std::ostream & os)
+    {
+      PrintStateVisitor_internal<Node,Node::Joint::NBDOF>::visit(os);
     }
   };
 

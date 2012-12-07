@@ -32,7 +32,7 @@ namespace metapod
   ///
   /// \{
 
-  template< typename Robot, typename Body >
+  template< typename Robot, typename Body, int nbDofInJoint=0 >
   struct jac_point_internal;
 
   /// \brief Point articular jacobian algorithm.
@@ -76,7 +76,7 @@ namespace metapod
       vector3d p = Body::iX0.applyInv(b_p);
 
       // Call internal jacobian routine.
-      jac_point_internal< Robot, Body >::run(p, J);
+      jac_point_internal< Robot, Body, Body::Joint::NBDOF >::run(p, J);
     }
   };
 
@@ -102,7 +102,7 @@ namespace metapod
       vector3d p = Body::iX0.applyInv(b_p);
 
       // Call internal jacobian routine.
-      jac_point_internal< Robot, Body >::run(p, J);
+      jac_point_internal< Robot, Body, Body::Joint::NBDOF >::run(p, J);
     }
   };
 
@@ -111,7 +111,7 @@ namespace metapod
   /// \brief Internal point articular jacobian algorithm routine.
   ///
   /// \sa jac_point
-  template< typename Robot, typename Body >
+  template< typename Robot, typename Body, int nbDofInJoint >
   struct jac_point_internal
   {
     typedef typename Body::Joint Joint;
@@ -126,13 +126,27 @@ namespace metapod
       // where pX0 is the word transform in the point frame,
       // iX0 is the world transform in the ith body frame,
       // Si is the ith joint motion subspace matrix.
-      if (Joint::NBDOF!=0)
-	J.template
-	  block<6,Joint::NBDOF>(0,Joint::positionInConf) =
-	  Body::iX0.inverse ().toPointFrame (p).apply(Joint::S);
+      J.template
+	block<6,Joint::NBDOF>(0,Joint::positionInConf) =
+	Body::iX0.inverse ().toPointFrame (p).apply(Joint::S);
 
       // Recurse over body parent.
-      jac_point_internal< Robot, typename Body::Parent >::run(p, J);
+      jac_point_internal< Robot, typename Body::Parent, Body::Parent::Joint::NBDOF >::run(p, J);
+    }
+  };
+
+  template< typename Robot, typename Body >
+  struct jac_point_internal<Robot,Body, 0>
+  {
+    typedef typename Body::Joint Joint;
+    typedef typename jac_point< Robot, Body >::jacobian_t
+    jacobian_t;
+
+    static void run(const vector3d & p,
+                    jacobian_t & J) __attribute__ ((hot))
+    {
+      // Recurse over body parent.
+      jac_point_internal< Robot, typename Body::Parent, Body::Parent::Joint::NBDOF >::run(p, J);
     }
   };
 

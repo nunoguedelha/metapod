@@ -59,11 +59,17 @@ namespace metapod
   // Class No-Child. Necessary to end the recursion on the multibody tree.
   class NC {};
 
-  // Class No-Parent. Used to set the parent body of the freeflyer.
+  class NPJoint { 
+    public:  
+        enum {NBDOF=0};
+  };
+
+  // Class No-Parent. Used to set the parent body of the freeflyer
   class NP
   {
     public:
       static Spatial::Inertia Iic;
+      typedef NPJoint Joint;
   };
 //  Inertia NP::Iic;
 

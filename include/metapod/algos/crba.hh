@@ -114,6 +114,25 @@ namespace metapod
     }
   };
 
+  // Forward crba for general root joint.
+  template < typename Robot, typename Tree >
+  struct crba_forward_propagation_internal<Robot,Tree, 0>
+  {
+    typedef Tree Node;
+    typedef typename Node::Body BI;
+
+    static void run()
+    {
+      Node::Body::Iic = Node::Body::I;
+
+      crba_forward_propagation_parent< Robot, typename Node::Child0, Node >::run();
+      crba_forward_propagation_parent< Robot, typename Node::Child1, Node >::run();
+      crba_forward_propagation_parent< Robot, typename Node::Child2, Node >::run();
+      crba_forward_propagation_parent< Robot, typename Node::Child3, Node >::run();
+      crba_forward_propagation_parent< Robot, typename Node::Child4, Node >::run();
+    }
+  };
+
   template < typename Robot, typename Tree, typename Parent >
   struct crba_forward_propagation_parent
   {

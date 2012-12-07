@@ -121,13 +121,6 @@ namespace metapod
 	  return tmp;
         }
 
-        /// Specialization for JOINT_FIXED
-        vector6_0d apply(const ConstraintMotionFixed& ) const
-        {
-	  vector6_0d tmp =vector6_0d::Zero();
-	  return tmp;
-        }
-
         /// Vb.toVector() = bXa.toMatrix() * Va.toVector()
         matrix6d toMatrix() const
         {

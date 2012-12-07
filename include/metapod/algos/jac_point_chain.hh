@@ -44,11 +44,13 @@ namespace metapod
   /// \{
 
   template< typename Robot, typename Body,
-            unsigned int offset = 0, bool includeFreeFlyer = true >
+            unsigned int offset = 0, bool includeFreeFlyer = true,
+	    int nbDofInJoint = 0>
   struct jac_point_chain_internal_start;
 
   template< typename Robot, typename Body,
-            unsigned int offset = 0, bool includeFreeFlyer = true >
+            unsigned int offset = 0, bool includeFreeFlyer = true,
+	    int nbDofInJoint = 0>
   struct jac_point_chain_internal_end;
 
   template< typename Robot, typename StartBody,
@@ -174,7 +176,8 @@ namespace metapod
   ///
   /// \sa jac_point_chain
   template< typename Robot, typename Body,
-            unsigned int offset, bool includeFreeFlyer >
+            unsigned int offset, bool includeFreeFlyer,
+	    int nbDofInJoint >
   struct jac_point_chain_internal_start
   {
     typedef typename Body::Joint Joint;
@@ -196,16 +199,40 @@ namespace metapod
       // where pX0 is the word transform in the point frame,
       // iX0 is the world transform in the ith body frame,
       // Si is the ith joint motion subspace matrix.
-      if (Joint::NBDOF!=0)
-	J.template
-	  block<6,Joint::NBDOF>(0,Joint::positionInConf
-				+ offset
-				- 6*(1 - includeFreeFlyer)) =
-	  - Body::iX0.inverse ().toPointFrame (p).apply(Joint::S);
+      J.template
+	block<6,Joint::NBDOF>(0,Joint::positionInConf
+			      + offset
+			      - 6*(1 - includeFreeFlyer)) =
+	- Body::iX0.inverse ().toPointFrame (p).apply(Joint::S);
 
       // Recurse over body parent.
       jac_point_chain_internal_start<Robot, typename Body::Parent,
-        offset, includeFreeFlyer >::run(label, p, J);
+        offset, includeFreeFlyer, Body::Parent::Joint::NBDOF >::run(label, p, J);
+    }
+  };
+
+  template< typename Robot, typename Body,
+            unsigned int offset, bool includeFreeFlyer
+	    >
+  struct jac_point_chain_internal_start<Robot,Body, offset, includeFreeFlyer,0>
+  {
+    typedef typename Body::Joint Joint;
+    typedef typename jac_point_chain<Robot, Body, Body,
+                                     offset, includeFreeFlyer >::jacobian_t
+    jacobian_t;
+
+    static void run(const int & label,
+                    const vector3d & p,
+                    jacobian_t & J) __attribute__ ((hot))
+    {
+      // FIXME: Stop condition: avoid if condition and use template
+      // specialization instead.
+      if (label == Body::label)
+        return;
+
+      // Recurse over body parent.
+      jac_point_chain_internal_start<Robot, typename Body::Parent,
+        offset, includeFreeFlyer, Body::Parent::Joint::NBDOF >::run(label, p, J);
     }
   };
 
@@ -230,7 +257,8 @@ namespace metapod
   ///
   /// \sa jac_point_chain
   template< typename Robot, typename Body,
-            unsigned int offset, bool includeFreeFlyer >
+            unsigned int offset, bool includeFreeFlyer,
+	    int nbDofInJoint >
   struct jac_point_chain_internal_end
   {
     typedef typename Body::Joint Joint;
@@ -261,7 +289,37 @@ namespace metapod
 
       // Recurse over body parent.
       jac_point_chain_internal_end< Robot, typename Body::Parent,
-        offset, includeFreeFlyer >::run(label, p, J);
+        offset, includeFreeFlyer, Body::Parent::Joint::NBDOF >::run(label, p, J);
+    }
+  };
+
+  /// \brief Internal point in chain articular jacobian algorithm
+  /// routine.
+  ///
+  /// Compute root to end body contribution in jacobian.
+  ///
+  /// \sa jac_point_chain
+  template< typename Robot, typename Body,
+            unsigned int offset, bool includeFreeFlyer  >
+  struct jac_point_chain_internal_end<Robot,Body, offset, includeFreeFlyer, 0>
+  {
+    typedef typename Body::Joint Joint;
+    typedef typename jac_point_chain<Robot, Body, Body,
+                                     offset, includeFreeFlyer >::jacobian_t
+    jacobian_t;
+
+    static void run(const int & label,
+                    const vector3d & p,
+                    jacobian_t & J) __attribute__ ((hot))
+    {
+      // FIXME: Stop condition: avoid if condition and use template
+      // specialization instead.
+      if (label == Body::label)
+        return;
+
+      // Recurse over body parent.
+      jac_point_chain_internal_end< Robot, typename Body::Parent,
+        offset, includeFreeFlyer, Body::Parent::Joint::NBDOF >::run(label, p, J);
     }
   };
 
