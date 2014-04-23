@@ -40,13 +40,15 @@ namespace metapod
     Force f; // used by rnea
     Vector1d torque; // used by rnea
     Vector3d axis_;
+    bool     fwdDyn; // "<dynamics> fwd_dyn" field, used by chda
 
-    RevoluteAxisAnyJoint(double axis_x, double axis_y, double axis_z):
+    RevoluteAxisAnyJoint(double axis_x, double axis_y, double axis_z, bool isFwdDyn):
       cj(Motion::Zero()),
       S(axis_x, axis_y, axis_z),
       axis_(axis_x, axis_y, axis_z)
     {
       vj.v(Vector3d::Zero());
+      fwdDyn = isFwdDyn;
     }
 
     inline void bcalc(const Vector1d& qi)
