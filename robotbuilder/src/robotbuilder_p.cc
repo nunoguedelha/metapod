@@ -525,13 +525,14 @@ void RobotBuilderP::writeLink(int link_id, const ReplMap &replacements,
       "template <> const @X_joint_parent_type@ @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@::Xt = @X_joint_parent_type@(\n"
       "    @R_joint_parent@,\n"
       "    @r_parent_joint@);\n"
+      "template <> const bool @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@::Joint::fwdDyn = @is_fwd_dyn@;\n"
       "template <> @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@::Node@node_id@():\n"
       "  joint(@joint_args@) {}\n\n");
+  repl["is_fwd_dyn"] = ::to_string(model_.);
   if (model_.joint_type(link_id) == RobotBuilder::REVOLUTE_AXIS_ANY)
     {
       std::stringstream ss;
       ss << model_.joint_axis(link_id).format(comma_fmt);
-      if()
       repl["joint_args"] = ss.str();
     }
   out.init_nodes << tpl4.format(repl);

@@ -55,6 +55,7 @@ Link::Link(
     const Eigen::Vector3d & body_center_of_mass,
     const Eigen::Matrix3d & body_rotational_inertia,
     const Eigen::Vector3d & joint_axis,
+    const bool is_fwdDyn, // <dynamics> fwd_dyn
     int dof_index):
   id_(id),
   parent_id_(parent_id),
@@ -67,6 +68,7 @@ Link::Link(
   body_center_of_mass_(body_center_of_mass),
   body_rotational_inertia_(body_rotational_inertia),
   joint_axis_(joint_axis),
+  fwdDyn(is_fwdDyn), // <dynamics> fwd_dyn
   dof_index_(dof_index)
 {}
 
