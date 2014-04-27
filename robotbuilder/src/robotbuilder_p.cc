@@ -262,6 +262,7 @@ RobotBuilder::Status RobotBuilderP::addLink(const std::string& parent_body_name,
                                             const Eigen::Vector3d & body_center_of_mass,
                                             const Eigen::Matrix3d & body_rotational_inertia,
                                             const Eigen::Vector3d & joint_axis,
+					    const bool fwdDyn,
                                             int dof_index)
 {
 
@@ -389,6 +390,7 @@ RobotBuilder::Status RobotBuilderP::addLink(const std::string& parent_body_name,
                        body_center_of_mass,
                        body_rotational_inertia,
                        joint_axis,
+		       fwdDyn,
                        joint_position_in_conf));
   nb_dof_ += joint_nb_dof;
   return RobotBuilder::STATUS_SUCCESS;
