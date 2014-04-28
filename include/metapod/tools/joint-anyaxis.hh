@@ -41,6 +41,7 @@ namespace metapod
     Vector1d torque; // used by rnea
     Vector3d axis_;
     static const bool fwdDyn; // "<dynamics> fwd_dyn" field, used by chda
+    static const bool nuOfFwDyn; // subtree supported by at least one fwdDyn joint
 
     RevoluteAxisAnyJoint(double axis_x, double axis_y, double axis_z):
       cj(Motion::Zero()),
