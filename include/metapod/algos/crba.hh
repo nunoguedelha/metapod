@@ -64,14 +64,7 @@ template< typename Robot > struct crba<Robot, false>
     typedef typename Nodes<Robot, node_id>::type NI;
     typedef NI Node;
 
-    // Do nothing if parent_id is NO_PARENT
-    template< typename AnyyRobot, int nj_id, int prev_nj_id >
-    struct BwdtVisitor
-    {
-      static void run(Robot&) {}
-    };
-
-    // Else update NJ with data from PrevNJ
+    // update NJ with data from PrevNJ
     template< typename AnyyRobot, int nj_id, int prev_nj_id >
     struct BwdtVisitor
     {

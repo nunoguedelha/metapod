@@ -27,25 +27,26 @@ namespace internal {
 template <typename Robot, int node_id>
 struct InitNuFwdDynVisitor
 {
-  static void discover()
+  static void discover(Robot& robot)
   {
     typedef typename Nodes<Robot, node_id>::type Node;
-    findString(Node::joint_name, log);
-    const int NB_DOF = boost::fusion::result_of::value_at_c<typename Robot::NodeVector, node_id>::type::Joint::NBDOF;
-    for(int i=0; i<NB_DOF; ++i)
-      log >> v[Node::q_idx+i];
+    typedef typename Nodes<Robot, Node::parent_id>::type Parent;
+    // if node_id parent is part of nu(fd) set, then node_id is also part of nu(fd)
+    Parent& parent = boost::fusion::at_c<Node::parent_id>(robot.nodes);
+    Node& node = boost::fusion::at_c<node_id>(robot.nodes);
+    node.joint.nuOfFwDyn = parent.joint.nuOfFwDyn;
   }
-  static void finish() {}
+  static void finish(Robot& robot) {}
 };
 
 } // end of namespace metapod::internal
 
 /// init the "nuFwdDyn" parameter for each joint.
-template< typename Robot > struct initConf
+template< typename Robot > struct initNuFwdDyn
 {
-  static void run()
+  static void run(Robot& robot)
   {
-    depth_first_traversal< internal::InitNuFwdDynVisitor, Robot >::run();
+    depth_first_traversal< internal::InitNuFwdDynVisitor, Robot >::run(robot);
   }
 };
 

@@ -198,7 +198,7 @@ Status addSubTree(
       center_of_mass,
       rotational_inertia,
       toEigen(jnt->axis),
-      jnt->dynamics.fwdDyn,
+      jnt->dynamics->fwdDyn,
       dof_index);
   if (status == STATUS_FAILURE)
     return STATUS_FAILURE;
