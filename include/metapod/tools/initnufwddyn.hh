@@ -19,10 +19,32 @@
 #ifndef METAPOD_INITNUFWDDYN_HH
 # define METAPOD_INITNUFWDDYN_HH
 
+# include <metapod/tools/constants.hh>
 # include <metapod/tools/depth_first_traversal.hh>
 
 namespace metapod {
 namespace internal {
+
+  // helper function: updates nu(fd) of current node's base joint depending on parent node's base joint.
+template <typename Robot, int parent_id, int node_id>
+struct iniNuFwdDyn_updateNuFromParent
+{
+  typedef typename Nodes<Robot, node_id>::type Node;
+  typedef typename Nodes<Robot, parent_id>::type Parent;
+  // if node_id parent is part of nu(fd) set, then node_id is also part of nu(fd)
+  static void run(Robot& robot)
+  {
+    Parent& parent = boost::fusion::at_c<parent_id>(robot.nodes);
+    Node& node = boost::fusion::at_c<node_id>(robot.nodes);
+    node.joint.nuOfFwDyn = parent.joint.nuOfFwDyn;
+  }
+};
+// Do nothing if parent_id is NO_PARENT
+template <typename Robot, int node_id>
+struct iniNuFwdDyn_updateNuFromParent<Robot, NO_PARENT, node_id>
+{
+  static void run(Robot& robot) {}
+};
 
 template <typename Robot, int node_id>
 struct InitNuFwdDynVisitor
@@ -30,11 +52,7 @@ struct InitNuFwdDynVisitor
   static void discover(Robot& robot)
   {
     typedef typename Nodes<Robot, node_id>::type Node;
-    typedef typename Nodes<Robot, Node::parent_id>::type Parent;
-    // if node_id parent is part of nu(fd) set, then node_id is also part of nu(fd)
-    Parent& parent = boost::fusion::at_c<Node::parent_id>(robot.nodes);
-    Node& node = boost::fusion::at_c<node_id>(robot.nodes);
-    node.joint.nuOfFwDyn = parent.joint.nuOfFwDyn;
+    iniNuFwdDyn_updateNuFromParent<Robot, Node::parent_id, node_id>::run(robot);
   }
   static void finish(Robot& robot) {}
 };

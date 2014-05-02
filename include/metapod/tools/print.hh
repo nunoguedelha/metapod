@@ -81,6 +81,30 @@ void printConf(const struct VectorNTpl<typename Robot::RobotFloatType>::Type & q
   depth_first_traversal<internal::PrintConfVisitor, Robot>::run(q, os);
 }
 
+// Print fd and nu(fd) parameters of the robot joints in a stream.
+namespace internal {
+template < typename Robot, int node_id> struct PrintNuFwdDynVisitor
+{
+  typedef typename Nodes<Robot, node_id>::type Node;
+
+  static void discover(const Robot& robot, std::ostream& os)
+  {
+    const Node& node = boost::fusion::at_c<node_id>(robot.nodes);
+    os << Node::joint_name << "\n"
+       << node.joint.fwdDyn << "\n"
+       << node.joint.nuOfFwDyn << "\n"
+       << std::endl;
+  }
+  static void finish(const Robot&, std::ostream & ) {}
+};
+} // end of namespace metapod::internal.
+
+template< typename Robot >
+void printNuFwdDyn(Robot& robot, std::ostream & os)
+{
+  depth_first_traversal<internal::PrintNuFwdDynVisitor, Robot>::run(robot, os);
+}
+
 // Print Transforms of the robot bodies in a stream.
 namespace internal {
 template < typename Robot, int node_id> struct PrintTransformsVisitor
@@ -125,29 +149,6 @@ template< typename Robot >
 void printTorques(Robot& robot, std::ostream & os)
 {
   depth_first_traversal<internal::PrintTorquesVisitor, Robot>::run(robot, os);
-}
-
-// Print fd and nu(fd) parameters of the robot joints in a stream.
-namespace internal {
-template < typename Robot, int node_id> struct PrintNuFwdDynVisitor
-{
-  typedef typename Nodes<Robot, node_id>::type Node;
-
-  static void discover(const Robot& robot, std::ostream& os)
-  {
-    const Node& node = boost::fusion::at_c<node_id>(robot.nodes);
-    os << Node::joint_name << "\n"
-       << node.joint.torque << "\n"
-       << std::endl;
-  }
-  static void finish(const Robot&, std::ostream & ) {}
-};
-} // end of namespace metapod::internal.
-
-template< typename Robot >
-void printNuFwdDyn(Robot& robot, std::ostream & os)
-{
-  depth_first_traversal<internal::PrintNuFwdDynVisitor, Robot>::run(robot, os);
 }
 
 // save the Torques of the robot in a vector.
