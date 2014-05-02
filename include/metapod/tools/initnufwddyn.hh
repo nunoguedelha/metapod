@@ -25,48 +25,71 @@
 namespace metapod {
 namespace internal {
 
-  // helper function: updates nu(fd) of current node's base joint depending on parent node's base joint.
-template <typename Robot, int parent_id, int node_id>
-struct iniNuFwdDyn_updateNuFromParent
-{
-  typedef typename Nodes<Robot, node_id>::type Node;
-  typedef typename Nodes<Robot, parent_id>::type Parent;
-  // if node_id parent is part of nu(fd) set, then node_id is also part of nu(fd)
-  static void run(Robot& robot)
-  {
-    Parent& parent = boost::fusion::at_c<parent_id>(robot.nodes);
-    Node& node = boost::fusion::at_c<node_id>(robot.nodes);
-    node.joint.nuOfFwDyn = parent.joint.nuOfFwDyn;
-  }
-};
-// Do nothing if parent_id is NO_PARENT
-template <typename Robot, int node_id>
-struct iniNuFwdDyn_updateNuFromParent<Robot, NO_PARENT, node_id>
-{
-  static void run(Robot& robot) {}
-};
+  // helper function: updates nu(fd) of current node's base joint depending on parent node's base joint. If node_id parent is part of nu(fd) set, then node_id is also part of nu(fd). We first define the generic function...
+  template <typename Robot, int node_id, bool isParentNuFwdDyn>
+  struct inheritNuFwdDyn {};
 
-template <typename Robot, int node_id>
-struct InitNuFwdDynVisitor
-{
-  static void discover(Robot& robot)
+
+  // specialisation: nu(fd) of parent node's base joint is true, so child node's joint inherits this property.
+  template <typename Robot, int node_id>
+  struct inheritNuFwdDyn<Robot, node_id, true>
   {
-    typedef typename Nodes<Robot, node_id>::type Node;
-    iniNuFwdDyn_updateNuFromParent<Robot, Node::parent_id, node_id>::run(robot);
-  }
-  static void finish(Robot& robot) {}
-};
+    static void run(Robot& robot)
+    {
+      typedef typename Nodes<Robot, node_id>::type Node;
+      Node& node = boost::fusion::at_c<node_id>(robot.nodes);
+      node.joint.nuOfFwDyn = true;
+    }
+  };
+
+  // specialisation: do nothing if nu(fd) of node's base joint is false.
+  template <typename Robot, int node_id>
+  struct inheritNuFwdDyn<Robot, node_id, false>
+  {
+    static void run(Robot& robot) {}
+  };
+
+  // common template for valid parent_id
+  template <typename Robot, int parent_id, int node_id>
+  struct iniNuFwdDyn_updateNuFromParent
+  {
+    static void run(Robot& robot)
+    {
+      typedef typename Nodes<Robot, parent_id>::type Parent;
+      Parent& parent = boost::fusion::at_c<parent_id>(robot.nodes);
+      const bool isParentNuOfFwdDyn = parent.joint.nuOfFwDyn;
+      inheritNuFwdDyn<Robot, node_id, isParentNuOfFwdDyn>::run(robot);
+    }
+  };
+  // If parent_id is NO_PARENT, just init nu(fd) = fd.
+  template <typename Robot, int node_id>
+  struct iniNuFwdDyn_updateNuFromParent<Robot, NO_PARENT, node_id>
+  {
+    static void run(Robot& robot) {}
+  };
+
+  // On top of that we define the Visitor
+  template <typename Robot, int node_id>
+  struct InitNuFwdDynVisitor
+  {
+    static void discover(Robot& robot)
+    {
+      typedef typename Nodes<Robot, node_id>::type Node;
+      iniNuFwdDyn_updateNuFromParent<Robot, Node::parent_id, node_id>::run(robot);
+    }
+    static void finish(Robot& robot) {}
+  };
 
 } // end of namespace metapod::internal
 
-/// init the "nuFwdDyn" parameter for each joint.
-template< typename Robot > struct initNuFwdDyn
-{
-  static void run(Robot& robot)
+  /// init the "nuFwdDyn" parameter for each joint (use Visitor defined above)
+  template< typename Robot > struct initNuFwdDyn
   {
-    depth_first_traversal< internal::InitNuFwdDynVisitor, Robot >::run(robot);
-  }
-};
+    static void run(Robot& robot)
+    {
+      depth_first_traversal< internal::InitNuFwdDynVisitor, Robot >::run(robot);
+    }
+  };
 
 } // end of namespace metapod
 
