@@ -39,5 +39,5 @@ BOOST_AUTO_TEST_CASE (test_initnufwddyn)
   nufwddyn_log.close();
 
   // Compare resulting file with reference file. 
-  compareLogs("nufwddyn.log", TEST_DIRECTORY "/nufwddyn.ref", 0);
+  compareLogs("nufwddyn.log", TEST_DIRECTORY "/nufwddyn.ref", 1e-5);
 }

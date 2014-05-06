@@ -534,7 +534,6 @@ void RobotBuilderP::writeLink(int link_id, const ReplMap &replacements,
       std::stringstream ss;
       ss << model_.joint_axis(link_id).format(comma_fmt);
       ss << ", " << ::to_string(model_.fwdDyn(link_id));
-      ss << ", " << ::to_string(model_.fwdDyn(link_id));
       repl["joint_args"] = ss.str();
     }
   out.init_nodes << tpl4.format(repl);

@@ -42,11 +42,16 @@ namespace internal {
     }
   };
 
-  // specialisation: do nothing if nu(fd) of node's base joint is false.
+  // specialisation: if nu(fd) of node's base joint is false, just init nu(fd) = fd. nu(fd) is not impacted by the parent.
   template <typename Robot, int node_id>
   struct inheritNuFwdDyn<Robot, node_id, false>
   {
-    static void run(Robot& robot) {}
+    static void run(Robot& robot)
+    {
+      typedef typename Nodes<Robot, node_id>::type Node;
+      Node& node = boost::fusion::at_c<node_id>(robot.nodes);
+      node.joint.nuOfFwDyn = node.joint.fwdDyn;
+    }
   };
 
   // common template for valid parent_id
@@ -57,15 +62,19 @@ namespace internal {
     {
       typedef typename Nodes<Robot, parent_id>::type Parent;
       Parent& parent = boost::fusion::at_c<parent_id>(robot.nodes);
-      const bool isParentNuOfFwdDyn = parent.joint.nuOfFwDyn;
-      inheritNuFwdDyn<Robot, node_id, isParentNuOfFwdDyn>::run(robot);
+      parent.joint.nuOfFwDyn? inheritNuFwdDyn<Robot, node_id, true>::run(robot) : inheritNuFwdDyn<Robot, node_id, false>::run(robot);
     }
   };
-  // If parent_id is NO_PARENT, just init nu(fd) = fd.
+  // If parent_id is NO_PARENT, just init nu(fd) = fd. nu(fd) is not impacted by the parent.
   template <typename Robot, int node_id>
   struct iniNuFwdDyn_updateNuFromParent<Robot, NO_PARENT, node_id>
   {
-    static void run(Robot& robot) {}
+    static void run(Robot& robot)
+    {
+      typedef typename Nodes<Robot, node_id>::type Node;
+      Node& node = boost::fusion::at_c<node_id>(robot.nodes);
+      node.joint.nuOfFwDyn = node.joint.fwdDyn;
+    }
   };
 
   // On top of that we define the Visitor
