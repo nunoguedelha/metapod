@@ -76,9 +76,13 @@ public:
   static Inertia inertias[@ROBOT_NB_BODIES@];
   NodeVector nodes;
   Eigen::Matrix< FloatType, NBDOF, NBDOF > H; // used by crba
+  Eigen::Matrix< FloatType, NBDOF, NBDOF > Q; // used by chda
+  Eigen::Matrix< FloatType, NBDOF, NBDOF > Cprime; // used by chda
 
   @ROBOT_CLASS_NAME@():
-    H(Eigen::Matrix< FloatType, NBDOF, NBDOF >::Zero())
+    H(Eigen::Matrix< FloatType, NBDOF, NBDOF >::Zero()),
+    Q(Eigen::Matrix< FloatType, NBDOF, NBDOF >::Zero()),
+    Cprime(Eigen::Matrix< FloatType, NBDOF, NBDOF >::Zero())
   {}
 };
 
