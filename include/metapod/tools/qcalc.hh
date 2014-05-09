@@ -40,22 +40,53 @@ enum Qoperation
   BUILD
 };
 
+typedef Eigen::Matrix<FloatType, 1, NBDOF> VectorNBDOFf;
+
 namespace internal {
 
 template< typename Robot, int node_id > struct QcalcVisitor
 {
-
-  // Add indexVector to FD matrix in case of "fd" mode joint,
-  // or add indexVector to FD matrix in case of "id" mode joint.
+  static VectorNBDOFf fdNodesFirst = VectorNBDOFf::Zero(); // permutation indexes for building Q matrix
+  static VectorNBDOFf idNodes = VectorNBDOFf::Zero(); // permutation indexes for building Q matrix
+  fdNodesFirstFillIndex = 0;
+  idNodesFillIndex = 0;
   
+  template< int node_id, Qoperation operation, bool fwdDyn >
+  struct HandleJointToQmatrix(Robot& robot) {};
+  
+  template< int node_id >
+  struct HandleJointToQmatrix<node_id, ADD, true>(Robot& robot)
+  {
+    // Add node_id index to FD vector in case of a "fd" mode joint
+    fdNodesFirst(1, fdNodesFirstFillIndex) = node_id;
+    fdNodesFirstFillIndex++;
+  };
+  
+  template< int node_id >
+  struct HandleJointToQmatrix<node_id, ADD, false>(Robot& robot)
+  {
+    // Add node_id index to ID vector in case of a "id" mode joint
+    idNodes(1, idNodesFillIndex) = node_id;
+    idNodesFillIndex++;
+  };
+    
+  template< int node_id >
+  struct HandleJointToQmatrix<node_id, BUILD>(Robot& robot)
+  {
+    // concatenate both lists
+    fdNodesFirst.tail(idNodesFillIndex) = idNodes.head(idNodesFillIndex);
+    // get permutation matrix Q from node_id list
+    Node& node = boost::fusion::at_c<node_id>(robot.nodes);
+    node.Q = Eigen::PermutationMatrix<NBDOF, NBDOF, FloatType>(fdNodesFirst).toDenseMatrix();
+  };
+    
   typedef typename Nodes<Robot, node_id>::type Node;
 
   static void discover(Robot& robot)
   {
     Node& node = boost::fusion::at_c<node_id>(robot.nodes);
-    // set from node_id, the indexVector to add to FD or ID permutation matrix
-    Eigen::Matrix< FloatType, 1, NBDOF > indexVector = Eigen::Matrix< FloatType, NBDOF, NBDOF >::Identity.row(node_id);
-    HandleJointToQmatrix<ADD, indexVector, node.joint.fwdDyn>::run(robot);
+    // add node_id to FD or ID permutation matrix depending on the joint mode
+    HandleJointToQmatrix<node_id, ADD, node.joint.fwdDyn>::run(robot);
   }
   static void finish(Robot& robot)
   {}
