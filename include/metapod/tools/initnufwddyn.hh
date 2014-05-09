@@ -26,9 +26,8 @@ namespace metapod {
 namespace internal {
 
   // helper function: updates nu(fd) of current node's base joint depending on parent node's base joint. If node_id parent is part of nu(fd) set, then node_id is also part of nu(fd). We first define the generic function...
-  template <typename Robot, int node_id, bool isParentNuFwdDyn>
+  template <typename Robot, int node_id, bool isParentNuOfFwdDyn>
   struct inheritNuFwdDyn {};
-
 
   // specialisation: nu(fd) of parent node's base joint is true, so child node's joint inherits this property.
   template <typename Robot, int node_id>
@@ -37,8 +36,7 @@ namespace internal {
     static void run(Robot& robot)
     {
       typedef typename Nodes<Robot, node_id>::type Node;
-      Node& node = boost::fusion::at_c<node_id>(robot.nodes);
-      node.joint.nuOfFwDyn = true;
+      Node::jointNuOfFwdDyn = true;
     }
   };
 
@@ -49,8 +47,7 @@ namespace internal {
     static void run(Robot& robot)
     {
       typedef typename Nodes<Robot, node_id>::type Node;
-      Node& node = boost::fusion::at_c<node_id>(robot.nodes);
-      node.joint.nuOfFwDyn = node.joint.fwdDyn;
+      Node::jointNuOfFwdDyn = Node::jointFwdDyn;
     }
   };
 
@@ -61,10 +58,10 @@ namespace internal {
     static void run(Robot& robot)
     {
       typedef typename Nodes<Robot, parent_id>::type Parent;
-      Parent& parent = boost::fusion::at_c<parent_id>(robot.nodes);
-      parent.joint.nuOfFwDyn? inheritNuFwdDyn<Robot, node_id, true>::run(robot) : inheritNuFwdDyn<Robot, node_id, false>::run(robot);
+      inheritNuFwdDyn<Robot, node_id, Parent::jointNuOfFwdDyn>::run(robot);
     }
   };
+  
   // If parent_id is NO_PARENT, just init nu(fd) = fd. nu(fd) is not impacted by the parent.
   template <typename Robot, int node_id>
   struct iniNuFwdDyn_updateNuFromParent<Robot, NO_PARENT, node_id>
@@ -72,8 +69,7 @@ namespace internal {
     static void run(Robot& robot)
     {
       typedef typename Nodes<Robot, node_id>::type Node;
-      Node& node = boost::fusion::at_c<node_id>(robot.nodes);
-      node.joint.nuOfFwDyn = node.joint.fwdDyn;
+      Node::jointNuOfFwdDyn = Node::jointFwdDyn;
     }
   };
 

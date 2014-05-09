@@ -434,6 +434,7 @@ void RobotBuilderP::writeLink(int link_id, const ReplMap &replacements,
   repl["joint_type"] = joint_type;
   repl["joint_rotation_type"] = joint_rotation_type;
   repl["joint_name"] = model_.joint_name(link_id);
+  repl["jointFwdDyn"] = ::to_string(model_.fwdDyn(link_id));
 
   const Eigen::Matrix3d &R_joint_parent = model_.R_joint_parent(link_id);
   if (R_joint_parent.isApprox(Eigen::Matrix3d::Identity())) {
@@ -491,6 +492,8 @@ void RobotBuilderP::writeLink(int link_id, const ReplMap &replacements,
       "    Node@node_id@();\n"
       "    static const int id = @node_id@;\n"
       "    static const std::string joint_name;\n"
+      "    static const bool jointFwdDyn; // <dynamics> fwd_dyn field, used by chda\n"
+      "    static bool jointNuOfFwdDyn; // subtree supported by at least one fwdDyn joint\n"
       "    static const std::string body_name;\n"
       "    static const @X_joint_parent_type@ Xt;\n"
       "    static const int q_idx = @dof_index@;\n"
@@ -523,6 +526,8 @@ void RobotBuilderP::writeLink(int link_id, const ReplMap &replacements,
   const TxtTemplate tpl4(
       "typedef double FloatType;\n"
       "template <> const std::string @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@::joint_name = std::string(\"@joint_name@\");\n"
+      "template <> const bool @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@::jointFwdDyn = @jointFwdDyn@;\n"
+      "template <> bool @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@::jointNuOfFwdDyn;\n"
       "template <> const std::string @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@::body_name = std::string(\"@body_name@\");\n"
       "template <> const @X_joint_parent_type@ @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@::Xt = @X_joint_parent_type@(\n"
       "    @R_joint_parent@,\n"
@@ -533,7 +538,6 @@ void RobotBuilderP::writeLink(int link_id, const ReplMap &replacements,
     {
       std::stringstream ss;
       ss << model_.joint_axis(link_id).format(comma_fmt);
-      ss << ", " << ::to_string(model_.fwdDyn(link_id));
       repl["joint_args"] = ss.str();
     }
   out.init_nodes << tpl4.format(repl);
