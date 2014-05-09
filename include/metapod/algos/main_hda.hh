@@ -28,101 +28,27 @@
 # include "metapod/tools/jcalc.hh"
 # include "metapod/tools/depth_first_traversal.hh"
 # include "metapod/tools/backward_traversal_prev.hh"
+# include "metapod/tools/initnufwddyn.hh"
+# include "metapod/tools/qcalc.hh"
+# include "metapod/algos/rnea.hh"
+# include "metapod/algos/crba.hh"
 
 namespace metapod {
 namespace internal {
 
-// helper function: update Parent inertia with the contribution of child Node
-  template < typename Robot,  int parent_id, int node_id >
-struct crba_update_parent_inertia
-{
-  typedef typename Nodes<Robot, parent_id>::type Parent;
-  typedef typename Nodes<Robot, node_id>::type Node;
-  static void run(Robot& robot)
-  {
-    Parent& parent = boost::fusion::at_c<parent_id>(robot.nodes);
-    Node& node = boost::fusion::at_c<node_id>(robot.nodes);
-    parent.body.Iic = parent.body.Iic + node.sXp.applyInv(node.body.Iic);
-  }
-};
-// Do nothing if parent_id is NO_PARENT
-template < typename Robot, int node_id >
-struct crba_update_parent_inertia<Robot, NO_PARENT, node_id>
-{
-  static void run(Robot&) {}
-};
+/// Templated Hybrid Dynamics Algorithm.
+/// Takes the multibody tree type as template parameter,
+/// and recursively proceeds on the Nodes.
+
+
+
+// helper function: 
 
 } // end of namespace metapod::internal
 
-// frontend
-template< typename Robot, bool jcalc = true > struct crba {};
-template< typename Robot > struct crba<Robot, false>
-{
-  template <typename AnyRobot, int node_id >
-  struct DftVisitor
-  {
-    typedef typename Nodes<Robot, node_id>::type NI;
-    typedef NI Node;
-
-    // update NJ with data from PrevNJ
-    template< typename AnyyRobot, int nj_id, int prev_nj_id >
-    struct BwdtVisitor
-    {
-      typedef typename Nodes<AnyyRobot, nj_id>::type NJ;
-      typedef typename Nodes<AnyyRobot, prev_nj_id>::type PrevNJ;
-      static void discover(AnyyRobot& robot)
-      {
-        NI& ni = boost::fusion::at_c<node_id>(robot.nodes);
-        NJ& nj = boost::fusion::at_c<nj_id>(robot.nodes);
-        PrevNJ& prev_nj = boost::fusion::at_c<prev_nj_id>(robot.nodes);
-        ni.joint_F = prev_nj.sXp.mulMatrixTransposeBy(ni.joint_F);
-        robot.H.template
-          block< NI::Joint::NBDOF, NJ::Joint::NBDOF >
-               ( NI::q_idx, NJ::q_idx )
-          = ni.joint_F.transpose() * nj.joint.S.S();
-        robot.H.template
-          block< NJ::Joint::NBDOF, NI::Joint::NBDOF >
-               ( NJ::q_idx, NI::q_idx )
-          = robot.H.template
-              block< NI::Joint::NBDOF, NJ::Joint::NBDOF >
-                   ( NI::q_idx, NJ::q_idx ).transpose();
-      }
-
-      static void finish(AnyyRobot&) {}
-    };
-
-    // forward propagation
-    static void discover(AnyRobot& robot)
-    {
-      NI& ni = boost::fusion::at_c<node_id>(robot.nodes);
-      ni.body.Iic = robot.inertias[node_id];
-    }
-
-    static void finish(AnyRobot& robot)
-    {
-      Node& node = boost::fusion::at_c<node_id>(robot.nodes);
-      internal::crba_update_parent_inertia<AnyRobot, Node::parent_id, node_id>::run(robot);
-      node.joint_F = node.body.Iic * node.joint.S;
-
-      robot.H.template block<Node::Joint::NBDOF, Node::Joint::NBDOF>(
-              Node::q_idx, Node::q_idx)
-                       = node.joint.S.transpose() * node.joint_F;
-      backward_traversal_prev< BwdtVisitor, Robot, node_id >::run(robot);
-    }
-  };
-
-  static void run(Robot& robot, const typename Robot::confVector& )
-  {
-    depth_first_traversal< DftVisitor, Robot >::run(robot);
-  }
-  static void run(Robot& robot)
-  {
-    depth_first_traversal< DftVisitor, Robot >::run(robot);
-  }
-};
 
 // frontend
-template< typename Robot > struct crba< Robot, true >
+template< typename Robot > struct main_hda()
 {
   static void run(Robot& robot, const typename Robot::confVector& q)
   {
