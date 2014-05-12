@@ -53,18 +53,20 @@ namespace internal {
 
   // common template for valid parent_id
   template <typename Robot, int parent_id, int node_id>
-  struct iniNuFwdDyn_updateNuFromParent
+  struct updateNuOfFwdDynFromParentOrLocal
   {
     static void run(Robot& robot)
     {
       typedef typename Nodes<Robot, parent_id>::type Parent;
-      inheritNuFwdDyn<Robot, node_id, Parent::jointNuOfFwdDyn>::run(robot);
+      Parent::jointNuOfFwdDyn? 
+	inheritNuFwdDyn<Robot, node_id, true>::run(robot) :
+	inheritNuFwdDyn<Robot, node_id, false>::run(robot);
     }
   };
   
   // If parent_id is NO_PARENT, just init nu(fd) = fd. nu(fd) is not impacted by the parent.
   template <typename Robot, int node_id>
-  struct iniNuFwdDyn_updateNuFromParent<Robot, NO_PARENT, node_id>
+  struct updateNuOfFwdDynFromParentOrLocal<Robot, NO_PARENT, node_id>
   {
     static void run(Robot& robot)
     {
@@ -80,7 +82,7 @@ namespace internal {
     static void discover(Robot& robot)
     {
       typedef typename Nodes<Robot, node_id>::type Node;
-      iniNuFwdDyn_updateNuFromParent<Robot, Node::parent_id, node_id>::run(robot);
+      updateNuOfFwdDynFromParentOrLocal<Robot, Node::parent_id, node_id>::run(robot);
     }
     static void finish(Robot& robot) {}
   };

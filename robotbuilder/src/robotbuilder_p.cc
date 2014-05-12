@@ -527,7 +527,7 @@ void RobotBuilderP::writeLink(int link_id, const ReplMap &replacements,
       "typedef double FloatType;\n"
       "template <> const std::string @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@::joint_name = std::string(\"@joint_name@\");\n"
       "template <> const bool @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@::jointFwdDyn = @jointFwdDyn@;\n"
-      "template <> bool @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@::jointNuOfFwdDyn;\n"
+      "template <> bool @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@::jointNuOfFwdDyn = false;\n"
       "template <> const std::string @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@::body_name = std::string(\"@body_name@\");\n"
       "template <> const @X_joint_parent_type@ @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@::Xt = @X_joint_parent_type@(\n"
       "    @R_joint_parent@,\n"

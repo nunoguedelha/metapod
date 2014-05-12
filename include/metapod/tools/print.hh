@@ -89,10 +89,9 @@ template < typename Robot, int node_id> struct PrintNuFwdDynVisitor
 
   static void discover(const Robot& robot, std::ostream& os)
   {
-    const Node& node = boost::fusion::at_c<node_id>(robot.nodes);
     os << Node::joint_name << "\n"
-       << node.joint.fwdDyn << "\n"
-       << node.joint.nuOfFwDyn << "\n"
+       << Node::jointFwdDyn << "\n"
+       << Node::jointNuOfFwdDyn << "\n"
        << std::endl;
   }
   static void finish(const Robot&, std::ostream & ) {}
