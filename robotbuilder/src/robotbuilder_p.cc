@@ -501,7 +501,7 @@ void RobotBuilderP::writeLink(int link_id, const ReplMap &replacements,
       "    static const int id = @node_id@;\n"
       "    static const std::string joint_name;\n"
       "    static const bool jointFwdDyn = @jointFwdDyn@; // <dynamics> fwd_dyn field, used by chda\n"
-      "    static bool jointNuOfFwdDyn; // subtree supported by at least one fwdDyn joint\n"
+      "    static const bool jointNuOfFwdDyn = initNuFwdDyn< @ROBOT_CLASS_NAME@<FloatType>, @ROBOT_CLASS_NAME@<FloatType>::Node@node_id@ >::value; // subtree supported by at least one fwdDyn joint\n"
       "    static const std::string body_name;\n"
       "    static const @X_joint_parent_type@ Xt;\n"
       "    static const int q_idx = @dof_index@;\n"
