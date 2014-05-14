@@ -21,6 +21,7 @@
 // Common test tools
 #include "common.hh"
 #include <metapod/tools/initnufwddyn.hh>
+#include <metapod/tools/my_static_assert.hh>
 
 using namespace metapod;
 
@@ -33,6 +34,15 @@ BOOST_AUTO_TEST_CASE (test_initnufwddyn)
   // Apply the nu(fd) computation to the metapod multibody and print the result in a log file.
   initNuFwdDyn<CURRENT_MODEL_ROBOT_LFT>::run(robot);
 
+  // test compile-time pocessing //
+  STATIC_ASSERT(CURRENT_MODEL_ROBOT_LFT::Node0::jointFwdDyn==false, NODE0_BAD_INIT_AT_COMPILE_TIME);
+  STATIC_ASSERT(CURRENT_MODEL_ROBOT_LFT::Node1::jointFwdDyn==true, NODE1_BAD_INIT_AT_COMPILE_TIME);
+  STATIC_ASSERT(CURRENT_MODEL_ROBOT_LFT::Node2::jointFwdDyn==false, NODE2_BAD_INIT_AT_COMPILE_TIME);
+  /*
+  STATIC_ASSERT(CURRENT_MODEL_ROBOT_LFT::Node0::jointNuOfFwdDyn==false, NODE0_BAD_INIT_AT_COMPILE_TIME);
+  STATIC_ASSERT(CURRENT_MODEL_ROBOT_LFT::Node1::jointNuOfFwdDyn==true, NODE1_BAD_INIT_AT_COMPILE_TIME);
+  STATIC_ASSERT(CURRENT_MODEL_ROBOT_LFT::Node2::jointNuOfFwdDyn==true, NODE2_BAD_INIT_AT_COMPILE_TIME);
+  */
   // Write it to a log file. "true" bool value is written as "1", "false" is written as "0", as per reference file format.
   std::ofstream nufwddyn_log("nufwddyn.log", std::ofstream::out);
   printNuFwdDyn<CURRENT_MODEL_ROBOT_LFT>(robot, nufwddyn_log);
