@@ -33,7 +33,7 @@ namespace internal {
   template <typename Robot, int node_id>
   struct inheritNuFwdDyn<Robot, node_id, true>
   {
-    static void run(Robot& robot)
+    static void run()
     {
       typedef typename Nodes<Robot, node_id>::type Node;
       Node::jointNuOfFwdDyn = true;
@@ -44,7 +44,7 @@ namespace internal {
   template <typename Robot, int node_id>
   struct inheritNuFwdDyn<Robot, node_id, false>
   {
-    static void run(Robot& robot)
+    static void run()
     {
       typedef typename Nodes<Robot, node_id>::type Node;
       Node::jointNuOfFwdDyn = Node::jointFwdDyn;
@@ -55,12 +55,12 @@ namespace internal {
   template <typename Robot, int parent_id, int node_id>
   struct updateNuOfFwdDynFromParentOrLocal
   {
-    static void run(Robot& robot)
+    static void run()
     {
       typedef typename Nodes<Robot, parent_id>::type Parent;
       Parent::jointNuOfFwdDyn? 
-	inheritNuFwdDyn<Robot, node_id, true>::run(robot) :
-	inheritNuFwdDyn<Robot, node_id, false>::run(robot);
+	inheritNuFwdDyn<Robot, node_id, true>::run() :
+	inheritNuFwdDyn<Robot, node_id, false>::run();
     }
   };
   
@@ -68,7 +68,7 @@ namespace internal {
   template <typename Robot, int node_id>
   struct updateNuOfFwdDynFromParentOrLocal<Robot, NO_PARENT, node_id>
   {
-    static void run(Robot& robot)
+    static void run()
     {
       typedef typename Nodes<Robot, node_id>::type Node;
       Node::jointNuOfFwdDyn = Node::jointFwdDyn;
@@ -79,12 +79,12 @@ namespace internal {
   template <typename Robot, int node_id>
   struct InitNuFwdDynVisitor
   {
-    static void discover(Robot& robot)
+    static void discover()
     {
       typedef typename Nodes<Robot, node_id>::type Node;
-      updateNuOfFwdDynFromParentOrLocal<Robot, Node::parent_id, node_id>::run(robot);
+      updateNuOfFwdDynFromParentOrLocal<Robot, Node::parent_id, node_id>::run();
     }
-    static void finish(Robot& robot) {}
+    static void finish() {}
   };
 
 } // end of namespace metapod::internal
@@ -92,9 +92,9 @@ namespace internal {
   /// init the "nuFwdDyn" parameter for each joint (use Visitor defined above)
   template< typename Robot > struct initNuFwdDyn
   {
-    static void run(Robot& robot)
+    static void run()
     {
-      depth_first_traversal< internal::InitNuFwdDynVisitor, Robot >::run(robot);
+      depth_first_traversal< internal::InitNuFwdDynVisitor, Robot >::run();
     }
   };
 

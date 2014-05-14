@@ -30,9 +30,8 @@ typedef double LocalFloatType;
 BOOST_AUTO_TEST_CASE (test_initnufwddyn)
 {
   typedef CURRENT_MODEL_ROBOT<LocalFloatType> CURRENT_MODEL_ROBOT_LFT;
-  CURRENT_MODEL_ROBOT_LFT robot;
   // Apply the nu(fd) computation to the metapod multibody and print the result in a log file.
-  initNuFwdDyn<CURRENT_MODEL_ROBOT_LFT>::run(robot);
+  initNuFwdDyn<CURRENT_MODEL_ROBOT_LFT>::run();
 
   // test compile-time pocessing //
   STATIC_ASSERT(CURRENT_MODEL_ROBOT_LFT::Node0::jointFwdDyn==false, NODE0_BAD_INIT_AT_COMPILE_TIME);
@@ -45,7 +44,7 @@ BOOST_AUTO_TEST_CASE (test_initnufwddyn)
   */
   // Write it to a log file. "true" bool value is written as "1", "false" is written as "0", as per reference file format.
   std::ofstream nufwddyn_log("nufwddyn.log", std::ofstream::out);
-  printNuFwdDyn<CURRENT_MODEL_ROBOT_LFT>(robot, nufwddyn_log);
+  printNuFwdDyn<CURRENT_MODEL_ROBOT_LFT>(nufwddyn_log);
   nufwddyn_log.close();
 
   // Compare resulting file with reference file. 
