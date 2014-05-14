@@ -87,22 +87,21 @@ template < typename Robot, int node_id> struct PrintNuFwdDynVisitor
 {
   typedef typename Nodes<Robot, node_id>::type Node;
 
-  static void discover(const Robot& robot, std::ostream& os)
+  static void discover(std::ostream& os)
   {
-    const Node& node = boost::fusion::at_c<node_id>(robot.nodes);
     os << Node::joint_name << "\n"
-       << node.joint.fwdDyn << "\n"
-       << node.joint.nuOfFwDyn << "\n"
+       << Node::jointFwdDyn << "\n"
+       << Node::jointNuOfFwdDyn << "\n"
        << std::endl;
   }
-  static void finish(const Robot&, std::ostream & ) {}
+  static void finish(std::ostream & ) {}
 };
 } // end of namespace metapod::internal.
 
 template< typename Robot >
-void printNuFwdDyn(Robot& robot, std::ostream & os)
+void printNuFwdDyn(std::ostream & os)
 {
-  depth_first_traversal<internal::PrintNuFwdDynVisitor, Robot>::run(robot, os);
+  depth_first_traversal<internal::PrintNuFwdDynVisitor, Robot>::run(os);
 }
 
 // Print Transforms of the robot bodies in a stream.
