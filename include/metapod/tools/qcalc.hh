@@ -82,13 +82,13 @@ template< typename Robot, int node_id > struct QcalcVisitor
     
   typedef typename Nodes<Robot, node_id>::type Node;
 
-  static void discover(Robot& robot)
+  static void discover()
   {
     Node& node = boost::fusion::at_c<node_id>(robot.nodes);
     // add node_id to FD or ID permutation matrix depending on the joint mode
     HandleJointToQmatrix<node_id, ADD, node.joint.fwdDyn>::run(robot);
   }
-  static void finish(Robot& robot)
+  static void finish()
   {}
 };
 
@@ -96,10 +96,10 @@ template< typename Robot, int node_id > struct QcalcVisitor
 
 template< typename Robot > struct qcalc
 {
-  static void run(Robot& robot)
+  static void run()
   {
-    depth_first_traversal<internal::QcalcVisitor, Robot>::run(robot);
-    HandleJointToQmatrix<BUILD>::run(robot);
+    depth_first_traversal<internal::QcalcVisitor, Robot>::run();
+    HandleJointToQmatrix<BUILD>::run();
   }
 };
 
