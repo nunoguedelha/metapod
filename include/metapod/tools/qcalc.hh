@@ -34,6 +34,8 @@
 
 namespace metapod {
 
+namespace internal {
+
 enum Qoperation
 {
   ADD = 0,
@@ -42,51 +44,57 @@ enum Qoperation
 
 typedef Eigen::Matrix<FloatType, 1, NBDOF> VectorNBDOFf;
 
-namespace internal {
-
 template< typename Robot, int node_id > struct QcalcVisitor
 {
+  typedef typename Nodes<Robot, node_id>::type Node;
+  
   static VectorNBDOFf fdNodesFirst = VectorNBDOFf::Zero(); // permutation indexes for building Q matrix
   static VectorNBDOFf idNodes = VectorNBDOFf::Zero(); // permutation indexes for building Q matrix
-  fdNodesFirstFillIndex = 0;
-  idNodesFillIndex = 0;
+  static fdNodesFirstFillIndex = 0;
+  static idNodesFillIndex = 0;
   
-  template< int node_id, Qoperation operation, bool fwdDyn >
-  struct HandleJointToQmatrix(Robot& robot) {};
+  template< Qoperation operation, bool fwdDyn >
+  struct HandleJointToQmatrix {};
   
-  template< int node_id >
-  struct HandleJointToQmatrix<node_id, ADD, true>(Robot& robot)
+  template<>
+  struct HandleJointToQmatrix<ADD, true>
   {
-    // Add node_id index to FD vector in case of a "fd" mode joint
-    fdNodesFirst(1, fdNodesFirstFillIndex) = node_id;
-    fdNodesFirstFillIndex++;
+    static void run()
+    {
+      // Add node_id index to FD vector in case of a "fd" mode joint
+      fdNodesFirst(1, fdNodesFirstFillIndex) = node_id;
+      fdNodesFirstFillIndex++;
+    }
   };
   
-  template< int node_id >
-  struct HandleJointToQmatrix<node_id, ADD, false>(Robot& robot)
+  template<>
+  struct HandleJointToQmatrix<ADD, false>
   {
-    // Add node_id index to ID vector in case of a "id" mode joint
-    idNodes(1, idNodesFillIndex) = node_id;
-    idNodesFillIndex++;
-  };
-    
-  template< int node_id >
-  struct HandleJointToQmatrix<node_id, BUILD>(Robot& robot)
-  {
-    // concatenate both lists
-    fdNodesFirst.tail(idNodesFillIndex) = idNodes.head(idNodesFillIndex);
-    // get permutation matrix Q from node_id list
-    Node& node = boost::fusion::at_c<node_id>(robot.nodes);
-    node.Q = Eigen::PermutationMatrix<NBDOF, NBDOF, FloatType>(fdNodesFirst).toDenseMatrix();
+    static void run()
+    {
+      // Add node_id index to ID vector in case of a "id" mode joint
+      idNodes(1, idNodesFillIndex) = node_id;
+      idNodesFillIndex++;
+    }
   };
     
-  typedef typename Nodes<Robot, node_id>::type Node;
-
+  template< bool fwdDyn >
+  struct HandleJointToQmatrix<BUILD, fwdDyn>
+  {
+    static void run()
+    {
+      // concatenate both lists
+      fdNodesFirst.tail(idNodesFillIndex) = idNodes.head(idNodesFillIndex);
+      // get permutation matrix Q from node_id list
+      Node::Q = Eigen::PermutationMatrix<NBDOF, NBDOF, FloatType>(fdNodesFirst).toDenseMatrix();
+    }
+  };
+  
   static void discover()
   {
-    Node& node = boost::fusion::at_c<node_id>(robot.nodes);
+    typedef typename Nodes<Robot, node_id>::type Node;
     // add node_id to FD or ID permutation matrix depending on the joint mode
-    HandleJointToQmatrix<node_id, ADD, node.joint.fwdDyn>::run(robot);
+    HandleJointToQmatrix<ADD, Node::jointFwdDyn>::run();
   }
   static void finish()
   {}
@@ -99,7 +107,7 @@ template< typename Robot > struct qcalc
   static void run()
   {
     depth_first_traversal<internal::QcalcVisitor, Robot>::run();
-    HandleJointToQmatrix<BUILD>::run();
+    internal::HandleJointToQmatrix<internal::BUILD, true>::run();
   }
 };
 
