@@ -28,28 +28,29 @@
 namespace metapod {
   namespace internal {
 
-    template< typename T > struct Elem0 {static const T value;};
-    template< typename T > struct Elem1 {static const T value;};
-    template< typename T > struct Elem2 {static const T value;};
-    template< typename T > struct Elem3 {static const T value;};
-
   } // end of namespace metapod::internal
-
+  /*
+  template <> struct Table::Get<0> {typedef internal::Elem0<T> type;};
+  template <> struct Table::Get<1> {typedef internal::Elem1<T> type;};
+  template <> struct Table::Get<2> {typedef internal::Elem2<T> type;};
+  template <> struct Table::Get<3> {typedef internal::Elem3<T> type;};
+  */
   template< typename T > struct Table
   {
-    template < int elem_index > struct Get {};
+    class Elem0 {static const T value;};
+    class Elem1 {static const T value;};
+    class Elem2 {static const T value;};
+    class Elem3 {static const T value;};
+    
+    template < int elem_index > struct Get {typedef Elem0 type;};
     
     template < int elem_index, T value >
-    static void set()
+    void Set()
     {
-      const Get<elem_index>::type<T>::value = value;
-    }
+      typedef typename Get<elem_index>::type Elem;
+      T Elem::value = value;
+    };
   };
-  
-  template <> struct Table::Get <0> {typedef internal::Elem0<T> type;};
-  template <> struct Table::Get <1> {typedef internal::Elem1<T> type;};
-  template <> struct Table::Get <2> {typedef internal::Elem2<T> type;};
-  template <> struct Table::Get <3> {typedef internal::Elem3<T> type;};
   
 } // end of namespace metapod
 
