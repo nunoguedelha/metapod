@@ -26,34 +26,12 @@ using namespace metapod;
 
 BOOST_AUTO_TEST_CASE (test_initReadTable)
 {
-  typedef Table<int> MyTable;
+  typedef class Table::Elem<0,5> MyElem;
   
-  MyTable::set<0, 10>();
-  //  static const int value0 = MyTable::Get<0>::type::value;
+  const int valInstance = MyElem::value;
   
-  MyTable::set<1, 20>();
-  //  static const int value1 = MyTable::Get<0>::type::value;
+  //  struct TABLE0_BAD_INIT_AT_COMPILE_TIME{};
   
-  MyTable::set<2, 30>();
-  //  static const int value2 = MyTable::Get<0>::type::value;
+  //  STATIC_ASSERT(MyElem::value == 5, TABLE0_BAD_INIT_AT_COMPILE_TIME);
   
-  MyTable::set<3, 40>();
-  //  static const int value3 = MyTable::Get<0>::type::value;
-  /*
-  // test compile-time pocessing //
-  struct TABLE0_BAD_INIT_AT_COMPILE_TIME{};
-  struct TABLE1_BAD_INIT_AT_COMPILE_TIME{};
-  struct TABLE2_BAD_INIT_AT_COMPILE_TIME{};
-  struct TABLE3_BAD_INIT_AT_COMPILE_TIME{};
-
-  STATIC_ASSERT(MyTable::Get<0>::type::value == 10, TABLE0_BAD_INIT_AT_COMPILE_TIME);
-  STATIC_ASSERT(MyTable::Get<1>::type::value == 20, TABLE1_BAD_INIT_AT_COMPILE_TIME);
-  STATIC_ASSERT(MyTable::Get<2>::type::value == 30, TABLE2_BAD_INIT_AT_COMPILE_TIME);
-  STATIC_ASSERT(MyTable::Get<3>::type::value == 40, TABLE3_BAD_INIT_AT_COMPILE_TIME);
-  
-  cout << MyTable::Get<0>::type::value << "\n";
-  cout << MyTable::Get<1>::type::value << "\n";
-  cout << MyTable::Get<2>::type::value << "\n";
-  cout << MyTable::Get<3>::type::value << "\n";
-  */
 }

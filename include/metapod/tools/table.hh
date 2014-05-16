@@ -27,28 +27,24 @@
 
 namespace metapod {
   namespace internal {
+    template < int val > class Elem0 {static const int value = val;};
+    template < int val > class Elem1 {static const int value = val;};
+    template < int val > class Elem2 {static const int value = val;};
+    template < int val > class Elem3 {static const int value = val;};
 
+    template < int elem_index, int val > struct GetElem {};
+    template < int val > struct GetElem<0, val> {typedef Elem0<val> type;};
+    template < int val > struct GetElem<1, val> {typedef Elem1<val> type;};
+    template < int val > struct GetElem<2, val> {typedef Elem2<val> type;};
+    template < int val > struct GetElem<3, val> {typedef Elem3<val> type;};
+    
   } // end of namespace metapod::internal
-  /*
-  template <> struct Table::Get<0> {typedef internal::Elem0<T> type;};
-  template <> struct Table::Get<1> {typedef internal::Elem1<T> type;};
-  template <> struct Table::Get<2> {typedef internal::Elem2<T> type;};
-  template <> struct Table::Get<3> {typedef internal::Elem3<T> type;};
-  */
-  template< typename T > struct Table
+  
+  struct Table
   {
-    class Elem0 {static const T value;};
-    class Elem1 {static const T value;};
-    class Elem2 {static const T value;};
-    class Elem3 {static const T value;};
-    
-    template < int elem_index > struct Get {typedef Elem0 type;};
-    
-    template < int elem_index, T value >
-    void Set()
+    template < int elem_index, int val > struct Elem
     {
-      typedef typename Get<elem_index>::type Elem;
-      T Elem::value = value;
+      typedef typename internal::GetElem<elem_index, val>::type type;
     };
   };
   
