@@ -79,9 +79,10 @@ public:
   Eigen::Matrix< FloatType, NBDOF, NBDOF > H; // used by crba
   
   // permutation matrix Q
-  static Eigen::Matrix< FloatType, 1, NBDOF> fdNodes; // permutation indexes for building Q matrix
-  static Eigen::Matrix< FloatType, 1, NBDOF> idNodes; // permutation indexes for building Q matrix
-  static Eigen::Matrix< FloatType, NBDOF, NBDOF > Q; // used by chda
+  typedef Eigen::Matrix<FloatType, 1, NBDOF> VectorNBDOFf;
+  static VectorNBDOFf fdNodesFirst; // permutation indexes for building Q matrix
+  static VectorNBDOFf idNodes; // permutation indexes for building Q matrix
+  static Eigen::Matrix<FloatType, NBDOF, NBDOF> Q; // used by chda
   
   @ROBOT_CLASS_NAME@():
     H(Eigen::Matrix< FloatType, NBDOF, NBDOF >::Zero())
