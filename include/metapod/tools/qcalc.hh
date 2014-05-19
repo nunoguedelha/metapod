@@ -36,7 +36,7 @@ namespace metapod {
 
 namespace internal {
 
-enum Qoperation
+typedef enum Qoperation
 {
   ADD = 0,
   BUILD
