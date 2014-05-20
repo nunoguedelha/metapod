@@ -31,6 +31,7 @@
 # define METAPOD_QCALC_HH
 
 # include <metapod/tools/depth_first_traversal.hh>
+# include <cassert>
 
 namespace metapod {
 
@@ -54,7 +55,7 @@ namespace internal {
     static void run()
     {
       // Add node_id index to FD vector in case of a "fd" mode joint
-      Robot::fdNodesFirst(1, fdNodesFirstFillIndex) = node_id;
+      Robot::fdNodesFirst(0, fdNodesFirstFillIndex) = node_id;
       fdNodesFirstFillIndex++;
     }
   };
@@ -64,9 +65,10 @@ namespace internal {
   {
     static void run()
     {
-      // Add node_id index to ID vector in case of a "id" mode joint
-      Robot::idNodes(1, idNodesFillIndex) = node_id;
+      // Add node_id index to ID vector in case of an "id" mode joint
+      Robot::idNodes(0, idNodesFillIndex) = node_id;
       idNodesFillIndex++;
+      std::cout << "until here 1"  << std::endl;
     }
   };
     
@@ -103,11 +105,6 @@ namespace internal {
   {
     static void run()
     {
-      
-
-      Robot::fdNodesFirst = Robot::VectorNBDOFf::Zero();; // permutation indexes for building Q matrix
-      Robot::idNodes = Robot::VectorNBDOFf::Zero();; // permutation indexes for building Q matrix
-      
       depth_first_traversal<internal::QcalcVisitor, Robot>::run();
       internal::HandleJointToQmatrix<Robot, 0, internal::BUILD, true>::run();
     }

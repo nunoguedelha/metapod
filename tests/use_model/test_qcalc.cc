@@ -32,24 +32,28 @@ BOOST_AUTO_TEST_CASE (test_qcalc)
 
   // Apply the permutation matrix Q computation to the metapod multibody
   qcalc< CURRENT_MODEL_ROBOT_LFT >::run();
-
+  std::cout << "Apply the permutation matrix Q computation to the metapod multibody.\n\n";
+  
   // set configuration vector ddq to reference value.
   CURRENT_MODEL_ROBOT_LFT::confVector ddq;
   std::ifstream ddqconf(TEST_DIRECTORY "/ddq.conf");
   initConf<CURRENT_MODEL_ROBOT_LFT>::run(ddqconf, ddq);
   ddqconf.close();
+  std::cout << "set configuration vector ddq to reference value.\n\n";
 
   // compute re-ordered vector ddqprime = Q.ddq
   CURRENT_MODEL_ROBOT_LFT::confVector ddqprime;
   ddqprime = CURRENT_MODEL_ROBOT_LFT::Q * ddq;
-
+  std::cout << "compute re-ordered vector ddqprime = Q.ddq.\n\n";
+  
   // Print all results in a log file
   const char result_file[] = "qcalc.log";
   std::ofstream log(result_file, std::ofstream::out);
   log << "permutation matrix Q\n" << CURRENT_MODEL_ROBOT_LFT::Q << std::endl;
   log << "re-ordered vector ddqprime\n" << ddqprime << std::endl;
   log.close();
+  std::cout << "Print all results in a log file\n\n";
 
   // Compare results with reference file
-  //compareLogs(result_file, TEST_DIRECTORY "/qcalc.ref", 1e-5);
+  compareLogs(result_file, TEST_DIRECTORY "/qcalc.ref", 1e-5);
 }
