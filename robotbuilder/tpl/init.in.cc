@@ -19,6 +19,9 @@ namespace metapod {
 template <> Spatial::InertiaTpl<FloatType> @ROBOT_CLASS_NAME@<FloatType>::inertias[@node_id@] = {
 @init_inertias@};
 }
+template <> @ROBOT_CLASS_NAME@<FloatType>::VectorNBDOFf @ROBOT_CLASS_NAME@<FloatType>::fdNodesFirst = @ROBOT_CLASS_NAME@<FloatType>::VectorNBDOFf::Zero();
+template <> @ROBOT_CLASS_NAME@<FloatType>::VectorNBDOFf @ROBOT_CLASS_NAME@<FloatType>::idNodes = @ROBOT_CLASS_NAME@<FloatType>::VectorNBDOFf::Zero();
+template <> @ROBOT_CLASS_NAME@<FloatType>::VectorNBDOFf @ROBOT_CLASS_NAME@<FloatType>::Q = @ROBOT_CLASS_NAME@<FloatType>::MatrixNBDOFf::Zero();
 
 #ifdef _MSC_VER
 # pragma warning( pop )

@@ -80,9 +80,10 @@ public:
   
   // permutation matrix Q
   typedef Eigen::Matrix<FloatType, 1, NBDOF> VectorNBDOFf;
+  typedef Eigen::Matrix<FloatType, NBDOF, NBDOF> MatrixNBDOFf;
   static VectorNBDOFf fdNodesFirst; // permutation indexes for building Q matrix
   static VectorNBDOFf idNodes; // permutation indexes for building Q matrix
-  static Eigen::Matrix<FloatType, NBDOF, NBDOF> Q; // used by chda
+  static MatrixNBDOFf Q; // used by chda
   
   @ROBOT_CLASS_NAME@():
     H(Eigen::Matrix< FloatType, NBDOF, NBDOF >::Zero())
