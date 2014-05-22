@@ -21,6 +21,7 @@
 // Common test tools
 #include "common.hh"
 #include <metapod/tools/qcalc.hh>
+#include <metapod/tools/initnodeidconf.hh>
 
 using namespace metapod;
 
@@ -36,20 +37,19 @@ BOOST_AUTO_TEST_CASE (test_qcalc)
   
   // set configuration vector ddq to reference value.
   CURRENT_MODEL_ROBOT_LFT::confVector ddq;
-  std::ifstream ddqconf(TEST_DIRECTORY "/ddq.conf");
-  initConf<CURRENT_MODEL_ROBOT_LFT>::run(ddqconf, ddq);
-  ddqconf.close();
-  std::cout << "set configuration vector ddq to reference value.\n\n";
+  initNodeIdConf<CURRENT_MODEL_ROBOT_LFT>::run(ddq);
+  std::cout << "set configuration vector ddq to initial q_idx values.\n\n";
 
-  // compute re-ordered vector ddqprime = Q.ddq
+  // compute re-ordered q_idx vector ddqprime = Q.ddq
   CURRENT_MODEL_ROBOT_LFT::confVector ddqprime;
   ddqprime = CURRENT_MODEL_ROBOT_LFT::Q * ddq;
-  std::cout << "compute re-ordered vector ddqprime = Q.ddq.\n\n";
+  std::cout << "compute re-ordered q_idx vector ddqprime = Q.ddq.\n\n";
   
   // Print all results in a log file
   const char result_file[] = "qcalc.log";
   std::ofstream log(result_file, std::ofstream::out);
   log << "permutation matrix Q\n" << CURRENT_MODEL_ROBOT_LFT::Q << std::endl;
+  log << "initial vector ddq\n" << ddq << std::endl;
   log << "re-ordered vector ddqprime\n" << ddqprime << std::endl;
   log.close();
   std::cout << "Print all results in a log file\n\n";

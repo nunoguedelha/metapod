@@ -84,6 +84,7 @@ public:
   static VectorNBDOFf fdNodesFirst; // permutation indexes for building Q matrix
   static VectorNBDOFf idNodes; // permutation indexes for building Q matrix
   static MatrixNBDOFf Q; // used by chda
+  static MatrixNBDOFf Qt;
   
   @ROBOT_CLASS_NAME@():
     H(Eigen::Matrix< FloatType, NBDOF, NBDOF >::Zero())

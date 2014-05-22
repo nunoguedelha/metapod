@@ -46,41 +46,55 @@ namespace internal {
   static int fdNodesFirstFillIndex = 0;
   static int idNodesFillIndex = 0;
   
-  template< typename Robot, int node_id, Qoperation operation, bool fwdDyn >
+  template< typename Robot, int q_idx, int nbdof, Qoperation operation, bool fwdDyn >
   struct HandleJointToQmatrix {};
   
-  template< typename Robot, int node_id >
-  struct HandleJointToQmatrix<Robot, node_id, ADD, true>
+  template< typename Robot, int q_idx, int nbdof >
+  struct HandleJointToQmatrix<Robot, q_idx, nbdof, ADD, true>
   {
     static void run()
     {
-      // Add node_id index to FD vector in case of a "fd" mode joint
-      Robot::fdNodesFirst(0, fdNodesFirstFillIndex) = node_id;
+      // Add q_idx index to FD vector in case of a "fd" mode joint
+      Robot::fdNodesFirst(0, fdNodesFirstFillIndex) = q_idx;
       fdNodesFirstFillIndex++;
+      HandleJointToQmatrix<Robot, q_idx+1, nbdof-1, ADD, true>::run();
     }
   };
   
-  template< typename Robot, int node_id >
-  struct HandleJointToQmatrix<Robot, node_id, ADD, false>
+  template< typename Robot, int q_idx, int nbdof >
+  struct HandleJointToQmatrix<Robot, q_idx, nbdof, ADD, false>
   {
     static void run()
     {
-      // Add node_id index to ID vector in case of an "id" mode joint
-      Robot::idNodes(0, idNodesFillIndex) = node_id;
+      // Add q_idx index to ID vector in case of an "id" mode joint
+      Robot::idNodes(0, idNodesFillIndex) = q_idx;
       idNodesFillIndex++;
-      std::cout << "until here 1"  << std::endl;
+      HandleJointToQmatrix<Robot, q_idx+1, nbdof-1, ADD, false>::run();
     }
   };
     
-  template< typename Robot, int node_id, bool fwdDyn >
-  struct HandleJointToQmatrix<Robot, node_id, BUILD, fwdDyn>
+  template< typename Robot, int q_idx >
+  struct HandleJointToQmatrix<Robot, q_idx, 0, ADD, false>
+  {
+    static void run() {}
+  };
+  
+  template< typename Robot, int q_idx >
+  struct HandleJointToQmatrix<Robot, q_idx, 0, ADD, true>
+  {
+    static void run() {}
+  };
+  
+  template< typename Robot, int q_idx, int nbdof, bool fwdDyn >
+  struct HandleJointToQmatrix<Robot, q_idx, nbdof, BUILD, fwdDyn>
   {
     static void run()
     {
       // concatenate both lists
       Robot::fdNodesFirst.tail(idNodesFillIndex) = Robot::idNodes.head(idNodesFillIndex);
-      // get permutation matrix Q from node_id list
-      Robot::Q = Eigen::PermutationMatrix<Robot::NBDOF, Robot::NBDOF, typename Robot::RobotFloatType>(Robot::fdNodesFirst).toDenseMatrix();
+      // get permutation matrix Q from q_idx list
+      Robot::Qt = Eigen::PermutationMatrix<Robot::NBDOF, Robot::NBDOF, typename Robot::RobotFloatType>(Robot::fdNodesFirst).toDenseMatrix();
+      Robot::Q = Robot::Qt.transpose();
     }
   };
   
@@ -92,8 +106,8 @@ namespace internal {
     static void discover()
     {
       typedef typename Nodes<Robot, node_id>::type Node;
-      // add node_id to FD or ID permutation matrix depending on the joint mode
-      HandleJointToQmatrix<Robot, node_id, ADD, Node::jointFwdDyn>::run();
+      // add q_idx to FD or ID permutation matrix depending on the joint mode
+      HandleJointToQmatrix<Robot, Node::q_idx, Node::Joint::NBDOF, ADD, Node::jointFwdDyn>::run();
     }
     static void finish()
     {}
@@ -106,7 +120,7 @@ namespace internal {
     static void run()
     {
       depth_first_traversal<internal::QcalcVisitor, Robot>::run();
-      internal::HandleJointToQmatrix<Robot, 0, internal::BUILD, true>::run();
+      internal::HandleJointToQmatrix<Robot, 0, 0, internal::BUILD, true>::run();
     }
   };
 

@@ -2,7 +2,11 @@ permutation matrix Q
 0 1 0
 1 0 0
 0 0 1
+initial vector ddq
+0
+1.1
+2
 re-ordered vector ddqprime
--0.00400938
-0.002566
-0.00144338
+1.1
+0
+2
