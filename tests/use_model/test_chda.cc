@@ -1,7 +1,6 @@
 // Copyright 2014
 //
-// Nuno Guedelha (JRL/LAAS, CNRS/AIST)
-// Sébastien Barthélémy (Aldebaran Robotics)
+// Nuno Guedelha (CNRS)
 //
 // This file is part of metapod.
 // metapod is free software: you can redistribute it and/or modify
@@ -16,7 +15,7 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with metapod.  If not, see <http://www.gnu.org/licenses/>.
 
-// This test applies the chda on a test model with a reference configuration,
+// This test applies the chda (composite hybrid dynamics algorithm) on a test model with a reference configuration,
 // then compares the computed torques and accelerations with the reference 
 // torques and accelerations
 
@@ -50,7 +49,7 @@ BOOST_AUTO_TEST_CASE (test_chda)
 
   Robot robot;
   // Apply the CHDA (Hybrid Dynamics) to the metapod multibody and print the result in a log file.
-  chda< Robot, true >::run(robot, q, dq, ddq, torques);
+  chda<Robot>::run(robot, q, dq, ddq, torques);
   const char torques_result_file[] = "chdaTorques.log";
   std::ofstream log(torques_result_file, std::ofstream::out);
   printTorques<Robot>(robot, log);

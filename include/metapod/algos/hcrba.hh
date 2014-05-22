@@ -1,7 +1,6 @@
 // Copyright 2011, 2012, 2013
 //
-// Maxime Reis (JRL/LAAS, CNRS/AIST)
-// Sébastien Barthélémy (Aldebaran Robotics)
+// Nuno Guedelha (CNRS)
 //
 // This file is part of metapod.
 // metapod is free software: you can redistribute it and/or modify
@@ -17,7 +16,7 @@
 // along with metapod.  If not, see <http://www.gnu.org/licenses/>.
 
 /*
- * Implementation of the Composite Rigid Body Algorithm,
+ * Implementation of the Hybrid Composite Rigid Body Algorithm,
  * based on Featherstone's Rigid Body Dynamics Algorithms.
  */
 

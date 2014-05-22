@@ -1,7 +1,6 @@
-// Copyright 2011, 2012, 2013
+// Copyright 2014
 //
-// Maxime Reis (JRL/LAAS, CNRS/AIST)
-// Sébastien Barthélémy (Aldebaran Robotics)
+// Nuno Guedelha (CNRS)
 //
 // This file is part of metapod.
 // metapod is free software: you can redistribute it and/or modify
@@ -21,8 +20,8 @@
  * based on Featherstone's Rigid Body Dynamics Algorithms.
  */
 
-#ifndef METAPOD_CRBA_HH
-# define METAPOD_CRBA_HH
+#ifndef METAPOD_MAIN_HDA_HH
+# define METAPOD_MAIN_HDA_HH
 
 # include "metapod/tools/common.hh"
 # include "metapod/tools/jcalc.hh"
@@ -52,8 +51,16 @@ template< typename Robot > struct main_hda()
 {
   static void run(Robot& robot, const typename Robot::confVector& q)
   {
+    // 1 - compute Cprime = ID(q,q',Qt[0 q2"])
     jcalc< Robot >::run(robot, q, Robot::confVector::Zero());
     crba< Robot, false >::run(robot);
+
+    // 2 - compute H11 from Hprime = Q.H.Qt
+
+    // 3 - solve H11 q1" = tau1 - C1prime
+
+    // 4 - compute tau = Cprime + Qt[H11.q1" H21.q1"]
+
   }
 };
 
