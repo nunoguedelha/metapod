@@ -47,15 +47,29 @@ namespace internal {
 
 
 // frontend
-template< typename Robot > struct main_hda()
+template< typename Robot > struct chda
 {
-  static void run(Robot& robot, const typename Robot::confVector& q)
+  static void run(Robot& robot, 
+		  const typename Robot::confVector& q, 
+		  const typename Robot::confVector& dq, 
+		  const typename Robot::confVector& ddq, 
+		  const typename Robot::confVector& torques
+		  )
   {
-    // 1 - compute Cprime = ID(q,q',Qt[0 q2"])
-    jcalc< Robot >::run(robot, q, Robot::confVector::Zero());
-    crba< Robot, false >::run(robot);
-
+    typedef typename Robot::confVector confVector;
+    
+    // 1 - compute Cprime = ID(q,q',Qt[0 q2"]) using RNA :
+    qcalc< Robot >::run(); // Apply the permutation matrix Q
+    confVector ddq_perm = (Robot::Q * ddq); // reordered ddq
+    confVector ddq_perm_1_zeroed = ddq_perm.head(Robot::fdNodesFirstFillIndex) = confVector::Zero(); // set ddq_1 (unknown accelerations) to 0
+    confVector ddq_1_zeroed = Robot::Qt * ddq_perm_1_zeroed; // roll back to original index order
+    rnea< Robot, true >::run(robot, q, dq, ddq_1_zeroed); // compute torques => Cprime
+    confVector CprimeTorques; getTorques(robot, CprimeTorques); // get computed torques
+    robot.Cprime = CprimeTorques; // set those torques to robot Cprime parameter
+    
     // 2 - compute H11 from Hprime = Q.H.Qt
+      /*    jcalc< Robot >::run(robot, q, Robot::confVector::Zero());
+	    crba< Robot, false >::run(robot);*/
 
     // 3 - solve H11 q1" = tau1 - C1prime
 

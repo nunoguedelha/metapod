@@ -77,17 +77,21 @@ public:
   static Inertia inertias[@ROBOT_NB_BODIES@];
   NodeVector nodes;
   Eigen::Matrix< FloatType, NBDOF, NBDOF > H; // used by crba
+  confVector Cprime; // used by chda
   
   // permutation matrix Q
   typedef Eigen::Matrix<FloatType, 1, NBDOF> VectorNBDOFf;
   typedef Eigen::Matrix<FloatType, NBDOF, NBDOF> MatrixNBDOFf;
   static VectorNBDOFf fdNodesFirst; // permutation indexes for building Q matrix
   static VectorNBDOFf idNodes; // permutation indexes for building Q matrix
+  static int fdNodesFirstFillIndex;
+  static int idNodesFillIndex;
   static MatrixNBDOFf Q; // used by chda
   static MatrixNBDOFf Qt;
   
   @ROBOT_CLASS_NAME@():
-    H(Eigen::Matrix< FloatType, NBDOF, NBDOF >::Zero())
+    H(Eigen::Matrix< FloatType, NBDOF, NBDOF >::Zero()),
+    Cprime(confVector::Zero())
   {}
 };
 
