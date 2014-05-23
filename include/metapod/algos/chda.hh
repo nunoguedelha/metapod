@@ -56,25 +56,49 @@ template< typename Robot > struct chda
 		  const typename Robot::confVector& torques
 		  )
   {
+    /* below matrices and vectors reordered such that fwd dynamic joints 
+       come first, will get the postfix rff (reordered fwd dynamics first).*/
+    
     typedef typename Robot::confVector confVector;
     
     // 1 - compute Cprime = ID(q,q',Qt[0 q2"]) using RNA :
     qcalc< Robot >::run(); // Apply the permutation matrix Q
-    confVector ddq_perm = (Robot::Q * ddq); // reordered ddq
-    confVector ddq_perm_1_zeroed = ddq_perm.head(Robot::fdNodesFirstFillIndex) = confVector::Zero(); // set ddq_1 (unknown accelerations) to 0
-    confVector ddq_1_zeroed = Robot::Qt * ddq_perm_1_zeroed; // roll back to original index order
+    std::cout << Robot::Q << std::endl << std::endl; // TEST
+    
+    confVector ddq_rff_1_zeroed = Robot::Q * ddq; // First, reordered ddq
+    std::cout << ddq_rff_1_zeroed << std::endl << std::endl; // TEST
+    
+    ddq_rff_1_zeroed.head(Robot::fdNodesFirstFillIndex).setZero(); // Then, set unknown accelerations to 0
+    std::cout << ddq_rff_1_zeroed << std::endl << std::endl; // TEST
+    
+    confVector ddq_1_zeroed = Robot::Qt * ddq_rff_1_zeroed; // roll back to original index order
+    std::cout << ddq_1_zeroed << std::endl << std::endl; // TEST
+    
     rnea< Robot, true >::run(robot, q, dq, ddq_1_zeroed); // compute torques => Cprime
+    
     confVector CprimeTorques; getTorques(robot, CprimeTorques); // get computed torques
     robot.Cprime = CprimeTorques; // set those torques to robot Cprime parameter
+    std::cout << robot.Cprime << std::endl << std::endl; // TEST
     
     // 2 - compute H11 from Hprime = Q.H.Qt
-      /*    jcalc< Robot >::run(robot, q, Robot::confVector::Zero());
-	    crba< Robot, false >::run(robot);*/
-
+    typedef typename Robot::MatrixNBDOFf MatrixHrff;
+    typedef Eigen::Matrix<typename Robot::RobotFloatType, 1, 1> MatrixH11;
+    typedef Eigen::Matrix<typename Robot::RobotFloatType, 1, 2> MatrixH12;
+    typedef Eigen::Matrix<typename Robot::RobotFloatType, 2, 1> MatrixH21;
+    typedef Eigen::Matrix<typename Robot::RobotFloatType, 2, 2> MatrixH22;
+    
+    crba<Robot, true>::run(robot, q); // compute whole H
+    std::cout << robot.H << std::endl << std::endl; // TEST
+    MatrixHrff Hrff = Robot::Q * robot.H * Robot::Qt; // compute H11, square matrix of size "fdNodesFirstFillIndex"
+    std::cout << Hrff << std::endl << std::endl; // TEST
+    
+    MatrixH11 H11 = Hrff.template block(0, 0, Robot::fdNodesFirstFillIndex, Robot::fdNodesFirstFillIndex);
+    std::cout << H11 << std::endl; // TEST
+    
     // 3 - solve H11 q1" = tau1 - C1prime
 
     // 4 - compute tau = Cprime + Qt[H11.q1" H21.q1"]
-
+    
   }
 };
 
