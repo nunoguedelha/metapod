@@ -82,6 +82,7 @@ public:
   // permutation matrix Q
   typedef Eigen::Matrix<FloatType, 1, NBDOF> VectorNBDOFf;
   typedef Eigen::Matrix<FloatType, NBDOF, NBDOF> MatrixNBDOFf;
+  static const int nbFdDOF = @nb_fwdDyn_links@;
   static VectorNBDOFf fdNodesFirst; // permutation indexes for building Q matrix
   static VectorNBDOFf idNodes; // permutation indexes for building Q matrix
   static int fdNodesFirstFillIndex;

@@ -72,12 +72,19 @@ Link::Link(
   dof_index_(dof_index)
 {}
 
+RobotModel::RobotModel()
+  : nb_fwdDyn_links_(0)
+{}
 
 const std::string RobotModel::NP_ = "NP";
 
 int RobotModel::nb_links() const
 {
   return static_cast<int>(links_.size());
+}
+int RobotModel::nb_fwdDyn_links() const
+{
+  return nb_fwdDyn_links_;
 }
 int RobotModel::parent_id(int link_id) const
 {
@@ -177,6 +184,9 @@ int RobotModel::child_id(int link_id, unsigned int rank) const
 
 void RobotModel::add_link(const Link& link)
 {
+  // update number of links in forward dynamics mode
+  if(link.fwdDyn_) {nb_fwdDyn_links_++;}
+  
   // we assume the caller as filled the link with the proper id.
   // We might want to change this policy in the following way: set the id
   // ourselves and return it to the caller.

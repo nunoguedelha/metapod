@@ -611,6 +611,7 @@ RobotBuilder::Status RobotBuilderP::write() const
   repl["nodeid_enum_definition"] = streams.nodeid_enum_definition.str();
   repl["node_type_definitions"] = streams.node_type_definitions.str();
   repl["nodes_type_list"] = streams.nodes_type_list.str();
+  repl["nb_fwdDyn_links"] = ::to_string(model_.nb_fwdDyn_links());
   repl["map_node_id_to_type"] = streams.map_node_id_to_type.str();
 
   for (int i = 0; i<MAX_NB_CHILDREN_PER_NODE; ++i) {

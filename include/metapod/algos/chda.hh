@@ -56,19 +56,37 @@ template< typename Robot > struct chda
 		  const typename Robot::confVector& torques
 		  )
   {
-    /* below matrices and vectors reordered such that fwd dynamic joints 
+    /* below matrices and vectors which reordered such that fwd dynamic joints 
        come first, will get the postfix rff (reordered fwd dynamics first).*/
     
     typedef typename Robot::confVector confVector;
+    typedef typename Robot::MatrixNBDOFf MatrixNBDOFf;
     
-    // 1 - compute Cprime = ID(q,q',Qt[0 q2"]) using RNA :
+    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, Robot::NBDOF> MatrixDof10; // first nbFdDOF lines
+    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF, Robot::nbFdDOF> MatrixDof01; // first nbFdDOF columns
+    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, Robot::NBDOF> MatrixDof20; // last NBDOF-nbFdDOF lines
+    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF, Robot::NBDOF-Robot::nbFdDOF> MatrixDof02; // last NBDOF-nbFdDOF columns
+    
+    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, 1> confVectorDof1;
+    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, 1> confVectorDof2;
+    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, Robot::nbFdDOF> MatrixDof11;
+    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, Robot::NBDOF-Robot::nbFdDOF> MatrixDof12;
+    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, Robot::nbFdDOF> MatrixDof21;
+    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, Robot::NBDOF-Robot::nbFdDOF> MatrixDof22;
+    
+    // we shall use Q and Q sub-matrices Q1left, Q1right, Q2left, Q2right
     qcalc< Robot >::run(); // Apply the permutation matrix Q
     std::cout << Robot::Q << std::endl << std::endl; // TEST
+    MatrixDof10 Q1left = Robot::Q.template topRows<Robot::nbFdDOF>();
+    MatrixDof01 Q1right = Robot::Q.template leftCols<Robot::nbFdDOF>();
+    MatrixDof20 Q2left = Robot::Q.template bottomRows<Robot::NBDOF-Robot::nbFdDOF>();
+    MatrixDof02 Q2right = Robot::Q.template rightCols<Robot::NBDOF-Robot::nbFdDOF>();
     
-    confVector ddq_rff_1_zeroed = Robot::Q * ddq; // First, reordered ddq
+    // 1 - compute Cprime = ID(q,q',Qt[0 q2"]) using RNA :
+    confVector ddq_rff_1_zeroed = Robot::Q * ddq; // First, reorder ddq
     std::cout << ddq_rff_1_zeroed << std::endl << std::endl; // TEST
     
-    ddq_rff_1_zeroed.head(Robot::fdNodesFirstFillIndex).setZero(); // Then, set unknown accelerations to 0
+    ddq_rff_1_zeroed.template head<Robot::nbFdDOF>().template setZero(); // Then, set unknown accelerations to 0
     std::cout << ddq_rff_1_zeroed << std::endl << std::endl; // TEST
     
     confVector ddq_1_zeroed = Robot::Qt * ddq_rff_1_zeroed; // roll back to original index order
@@ -81,24 +99,34 @@ template< typename Robot > struct chda
     std::cout << robot.Cprime << std::endl << std::endl; // TEST
     
     // 2 - compute H11 from Hprime = Q.H.Qt
-    typedef typename Robot::MatrixNBDOFf MatrixHrff;
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, 1, 1> MatrixH11;
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, 1, 2> MatrixH12;
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, 2, 1> MatrixH21;
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, 2, 2> MatrixH22;
-    
-    crba<Robot, true>::run(robot, q); // compute whole H
+    crba<Robot, true>::run(robot, q); // First, compute whole H
     std::cout << robot.H << std::endl << std::endl; // TEST
-    MatrixHrff Hrff = Robot::Q * robot.H * Robot::Qt; // compute H11, square matrix of size "fdNodesFirstFillIndex"
+    MatrixNBDOFf Hrff = Robot::Q * robot.H * Robot::Qt; // H reordered
     std::cout << Hrff << std::endl << std::endl; // TEST
     
-    MatrixH11 H11 = Hrff.template block(0, 0, Robot::fdNodesFirstFillIndex, Robot::fdNodesFirstFillIndex);
+    MatrixDof11 H11 = Hrff.template topLeftCorner<Robot::nbFdDOF, Robot::nbFdDOF>(); // H11, square matrix of size "nbFdDOF x nbFdDOF"
     std::cout << H11 << std::endl; // TEST
     
-    // 3 - solve H11 q1" = tau1 - C1prime
-
-    // 4 - compute tau = Cprime + Qt[H11.q1" H21.q1"]
+    // 3 - solve H11*q1" = tau1 - C1prime
+    confVectorDof1 tau1 = Q1left * torques; // compute tau1: all known torques (nbFdDOF lines)
+    confVectorDof1 C1prime = Q1left * CprimeTorques; // compute C1prime (nbFdDOF lines)
+    // solve system
+    std::cout << "solving system { H11*q1'' = tau1 - C1prime } with :" << std::endl;            // TEST
+    std::cout << "tau1 =\t\t" << tau1 << "\t\t" << "and C1prime =\t\t" << C1prime << std::endl; // TEST
+    Eigen::ColPivHouseholderQR<MatrixDof11> decH11(H11);
+    confVectorDof1 ddq1 = decH11.solve(tau1 - C1prime);
+    std::cout << "ddq1 =\t\t" << std::endl << ddq1 << std::endl;
     
+    // 4 - compute tau = Cprime + Qt[H11.q1" H21.q1"]
+    //     tau = [tau1, tau2]t
+    //     tau2 = C2prime + H21.q1"
+    confVectorDof2 C2prime = Q2left * CprimeTorques; // C2prime (NBDOF-nbFdDOF lines)
+    MatrixDof21 H21 = Hrff.template bottomLeftCorner<Robot::NBDOF-Robot::nbFdDOF, Robot::nbFdDOF>(); // H21, square matrix of size "NBDOF-nbFdDOF x nbFdDOF"
+    confVectorDof2 tau2 = C2prime + H21 * ddq1;
+    confVector torquesRff;
+    torquesRff << tau1,
+                  tau2;
+    torques = Qt * torquesRff;
   }
 };
 

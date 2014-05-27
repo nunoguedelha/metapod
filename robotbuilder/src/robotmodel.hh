@@ -61,7 +61,9 @@ public:
 class RobotModel
 {
 public:
+  RobotModel();
   int nb_links() const; // NP does not count
+  int nb_fwdDyn_links() const;
   int parent_id(int link_id) const;
   const std::string& joint_name(int link_id) const;
   int joint_type(int link_id) const;
@@ -83,6 +85,7 @@ public:
 
 private:
   static const std::string NP_;
+  int nb_fwdDyn_links_;
   std::vector<int> roots_id_;
   std::vector<Link> links_; // link_id -> Link mapping
 };
