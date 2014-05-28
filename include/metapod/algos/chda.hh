@@ -52,8 +52,8 @@ template< typename Robot > struct chda
   static void run(Robot& robot, 
 		  const typename Robot::confVector& q, 
 		  const typename Robot::confVector& dq, 
-		  const typename Robot::confVector& ddq, 
-		  const typename Robot::confVector& torques
+		  typename Robot::confVector& ddq, 
+		  typename Robot::confVector& torques
 		  )
   {
     /* below matrices and vectors which reordered such that fwd dynamic joints 
@@ -123,10 +123,17 @@ template< typename Robot > struct chda
     confVectorDof2 C2prime = Q2left * CprimeTorques; // C2prime (NBDOF-nbFdDOF lines)
     MatrixDof21 H21 = Hrff.template bottomLeftCorner<Robot::NBDOF-Robot::nbFdDOF, Robot::nbFdDOF>(); // H21, square matrix of size "NBDOF-nbFdDOF x nbFdDOF"
     confVectorDof2 tau2 = C2prime + H21 * ddq1;
+    
+    // 5 - complete output vectors ddq and torques
     confVector torquesRff;
     torquesRff << tau1,
                   tau2;
-    torques = Qt * torquesRff;
+    torques = Robot::Qt * torquesRff;
+    confVectorDof2 ddq2 = Q2left * ddq;
+    confVector ddqRff;
+    ddqRff << ddq1,
+              ddq2;
+    ddq = Robot::Qt * ddqRff;
   }
 };
 

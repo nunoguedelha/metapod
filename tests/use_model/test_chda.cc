@@ -34,8 +34,8 @@ BOOST_AUTO_TEST_CASE (test_chda)
 
   std::ifstream qconf(TEST_DIRECTORY "/q.conf");
   std::ifstream dqconf(TEST_DIRECTORY "/dq.conf");
-  std::ifstream ddqconf(TEST_DIRECTORY "/ddq.conf");
-  std::ifstream torquesconf(TEST_DIRECTORY "/torques.conf");
+  std::ifstream ddqconf(TEST_DIRECTORY "/chdaDdq.conf");
+  std::ifstream torquesconf(TEST_DIRECTORY "/chdaTorques.conf");
 
   initConf<Robot>::run(qconf, q);
   initConf<Robot>::run(dqconf, dq);
