@@ -40,7 +40,7 @@ void findString(std::string s_, std::ifstream & is)
 template <typename Robot, int node_id>
 struct InitConfHybridParamsVisitor
 {
-  static void discover(std::ifstream & log, typename Robot::confVector &v, bool isTorque)
+  static void discover(std::ifstream &log, typename Robot::confVector &v, const bool &isTorque)
   {
     typedef typename boost::fusion::result_of::value_at_c<typename Robot::NodeVector, node_id>::type Node;
     findString(Node::joint_name, log);
@@ -56,13 +56,13 @@ struct InitConfHybridParamsVisitor
       v.template segment<NB_DOF>(Node::q_idx) = Eigen::Matrix<typename Robot::RobotFloatType, NB_DOF, 1>::Constant(-1.1111111);
     }
   }
-  static void finish(std::ifstream &, typename Robot::confVector &, bool) {}
+  static void finish(std::ifstream &, typename Robot::confVector &, const bool &) {}
 };
 
 template <typename Robot, int node_id>
 struct InitConfVisitor
 {
-  static void discover(std::ifstream & log, typename Robot::confVector &v)
+  static void discover(std::ifstream &log, typename Robot::confVector &v)
   {
     typedef typename Nodes<Robot, node_id>::type Node;
     findString(Node::joint_name, log);
@@ -77,10 +77,18 @@ struct InitConfVisitor
 
 } // end of namespace metapod::internal
 
+typedef enum
+{
+  NOT_HYBRID = 0,
+  HYBRID_DDQ = 1,
+  HYBRID_TORQUES = 2
+} ConfType;
+
 /// init a configuration vector with values from text file, formatted
 /// as printed by the printConf routine.
-template< typename Robot, bool isHybridParams=false > struct initConf {};
-template< typename Robot > struct initConf<Robot, false>
+template< typename Robot, ConfType confVectorType=NOT_HYBRID > struct initConf {};
+
+template< typename Robot > struct initConf<Robot, NOT_HYBRID>
 {
   static void run(std::ifstream & log, typename Robot::confVector & v)
   {
@@ -88,10 +96,20 @@ template< typename Robot > struct initConf<Robot, false>
   }
 };
 
-template< typename Robot > struct initConf<Robot, true>
+template< typename Robot > struct initConf<Robot, HYBRID_DDQ>
 {
-  static void run(std::ifstream & log, typename Robot::confVector & v, bool isTorque)
+  static void run(std::ifstream & log, typename Robot::confVector & v)
   {
+    const bool isTorque = false;
+    depth_first_traversal< internal::InitConfHybridParamsVisitor, Robot >::run(log, v, isTorque);
+  }
+};
+
+template< typename Robot > struct initConf<Robot, HYBRID_TORQUES>
+{
+  static void run(std::ifstream & log, typename Robot::confVector & v)
+  {
+    const bool isTorque = true;
     depth_first_traversal< internal::InitConfHybridParamsVisitor, Robot >::run(log, v, isTorque);
   }
 };

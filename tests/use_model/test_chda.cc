@@ -34,38 +34,50 @@ BOOST_AUTO_TEST_CASE (test_chda)
 
   std::ifstream qconf(TEST_DIRECTORY "/q.conf");
   std::ifstream dqconf(TEST_DIRECTORY "/dq.conf");
-  std::ifstream ddqconf(TEST_DIRECTORY "/chdaDdq.conf");
-  std::ifstream torquesconf(TEST_DIRECTORY "/chdaTorques.conf");
+  std::ifstream ddqconf(TEST_DIRECTORY "/chdaDdq.ref");
+  std::ifstream torquesconf(TEST_DIRECTORY "/chdaTorques.ref");
 
   initConf<Robot>::run(qconf, q);
   initConf<Robot>::run(dqconf, dq);
-  initConf<Robot>::run(ddqconf, ddq);
-  initConf<Robot>::run(torquesconf, torques);
+  initConf<Robot, HYBRID_DDQ>::run(ddqconf, ddq);
+  initConf<Robot, HYBRID_TORQUES>::run(torquesconf, torques);
 
   qconf.close();
   dqconf.close();
   ddqconf.close();
   torquesconf.close();
+  
+  // log the ddq and torques configuration updated with FD/ID joint modes
+  const char torquesFdIdInit_file[] = "chdaTorques.conf";
+  std::ofstream logTorquesFdIdInit(torquesFdIdInit_file, std::ofstream::out);
+  printConf<Robot>(torques, logTorquesFdIdInit);
+  logTorquesFdIdInit.close();
+  const char ddqFdIdInit_file[] = "chdaDdq.conf";
+  std::ofstream logDdqFdIdInit(ddqFdIdInit_file, std::ofstream::out);
+  printConf<Robot>(ddq, logDdqFdIdInit);
+  logDdqFdIdInit.close();
 
+  
   Robot robot;
   // Apply the CHDA (Hybrid Dynamics) to the metapod multibody and print the result in a log file.
+
   chda<Robot>::run(robot, q, dq, ddq, torques);
+
   const char torques_result_file[] = "chdaTorques.log";
   std::ofstream logTorques(torques_result_file, std::ofstream::out);
-  printTorques<Robot>(robot, logTorques);
+  printConf<Robot>(torques, logTorques);
   logTorques.close();
-
-  /*
+  
   const char ddq_result_file[] = "chdaDdq.log";
   std::ofstream logDdq(ddq_result_file, std::ofstream::out);
-  logDdq << ddq;
-  //printDdq<Robot>(ddq, log);
+  printConf<Robot>(ddq, logDdq);
   logDdq.close();
 
   // Compare results with reference file
   compareLogs(torques_result_file, TEST_DIRECTORY "/chdaTorques.ref", 1e-3);
   compareLogs(ddq_result_file, TEST_DIRECTORY "/chdaDdQ.ref", 1e-3);
   
+  /*
   // smoke test: torques variable value is not checked
   getTorques(robot, torques);
   getDdQ(robot, ddq);
