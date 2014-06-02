@@ -129,6 +129,9 @@ void compareLogs(
       } while(result_string.compare(name) && !result_stream.eof());
     }
   }
+  
+  result_stream.close();
+  reference_stream.close();
 }
 
 // Compare two text files
@@ -163,5 +166,8 @@ void compareTexts(
     std::cerr << "Result file is longer than reference file:" << result_string << " ("
               << result_file << " " << reference_file << ")" << std::endl;
   }
+  
+  result_stream.close();
+  reference_stream.close();
 }
 #endif

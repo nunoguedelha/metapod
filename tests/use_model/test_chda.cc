@@ -31,7 +31,7 @@ BOOST_AUTO_TEST_CASE (test_chda)
   typedef CURRENT_MODEL_ROBOT<LocalFloatType> Robot;
   // Set configuration vectors (q, dq, ddq, torques) to reference values.
   Robot::confVector q, dq, ddq, torques, ref_torques;
-
+  
   std::ifstream qconf(TEST_DIRECTORY "/q.conf");
   std::ifstream dqconf(TEST_DIRECTORY "/dq.conf");
   std::ifstream ddqconf(TEST_DIRECTORY "/chdaDdq.ref");
@@ -48,12 +48,10 @@ BOOST_AUTO_TEST_CASE (test_chda)
   torquesconf.close();
   
   // log the ddq and torques configuration updated with FD/ID joint modes
-  const char torquesFdIdInit_file[] = "chdaTorques.conf";
-  std::ofstream logTorquesFdIdInit(torquesFdIdInit_file, std::ofstream::out);
+  std::ofstream logTorquesFdIdInit("chdaTorques.conf", std::ofstream::out);
   printConf<Robot>(torques, logTorquesFdIdInit);
   logTorquesFdIdInit.close();
-  const char ddqFdIdInit_file[] = "chdaDdq.conf";
-  std::ofstream logDdqFdIdInit(ddqFdIdInit_file, std::ofstream::out);
+  std::ofstream logDdqFdIdInit("chdaDdq.conf", std::ofstream::out);
   printConf<Robot>(ddq, logDdqFdIdInit);
   logDdqFdIdInit.close();
 
@@ -75,7 +73,7 @@ BOOST_AUTO_TEST_CASE (test_chda)
 
   // Compare results with reference file
   compareLogs(torques_result_file, TEST_DIRECTORY "/chdaTorques.ref", 1e-3);
-  compareLogs(ddq_result_file, TEST_DIRECTORY "/chdaDdQ.ref", 1e-3);
+  compareLogs(ddq_result_file, TEST_DIRECTORY "/chdaDdq.ref", 1e-3);
   
   /*
   // smoke test: torques variable value is not checked
