@@ -215,7 +215,7 @@ int RobotModel::child_id(int link_id, unsigned int rank) const
 void RobotModel::add_link(const Link& link)
 {
   // update number of joints in forward dynamics mode
-  if(link.fwdDyn_) {fwdDyn_joints_dof_ += joint_dof(link.id_);}
+  if(link.fwdDyn_) {fwdDyn_joints_dof_ += link.joint_dof_;}
   
   // we assume the caller as filled the link with the proper id.
   // We might want to change this policy in the following way: set the id
