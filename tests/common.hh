@@ -84,11 +84,13 @@ void compareLogs(
     const std::string& reference_file,
     double epsilon)
 {
-  double result_value, reference_value;
+  double result_value, reference_value, result_diff_value;
   std::string name;
+  std::string result_diff_file = result_file+".diff";
   std::string result_string, reference_string;
   std::ifstream result_stream(result_file.c_str());
   std::ifstream reference_stream(reference_file.c_str());
+  std::ofstream result_diff_stream(result_diff_file.c_str(), std::ofstream::out);
   // ensure the reference file is really there
   BOOST_CHECK(reference_stream);
   unsigned int i = 0;
@@ -106,6 +108,8 @@ void compareLogs(
       }
       else
       {
+	result_diff_value = result_value - reference_value;
+	result_diff_stream << result_diff_value << std::endl;
         bool compare_ok = compareDouble(result_value, reference_value, epsilon);
         BOOST_CHECK(compare_ok);
         if(!compare_ok)
@@ -121,8 +125,9 @@ void compareLogs(
     {
       i = 0;
       result_stream.clear();
-      result_stream.seekg(0);
-      name = reference_string;
+      result_stream.seekg(0);  // back to beginning of result file
+      name = reference_string; // we matched a joint name
+      result_diff_stream << name << std::endl; // write joint name to diff file
       do
       {
         result_stream >> result_string;
@@ -132,6 +137,7 @@ void compareLogs(
   
   result_stream.close();
   reference_stream.close();
+  result_diff_stream.close();
 }
 
 // Compare two text files

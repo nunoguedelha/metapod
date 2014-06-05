@@ -113,7 +113,7 @@ template< typename Robot > struct chda
     // solve system
     std::cout << "solving system { H11*q1'' = tau1 - C1prime } with :" << std::endl;            // TEST
     std::cout << "tau1 =\t\t" << tau1 << "\t\t" << "and C1prime =\t\t" << C1prime << std::endl; // TEST
-    Eigen::ColPivHouseholderQR<MatrixDof11> decH11(H11);
+    Eigen::FullPivHouseholderQR<MatrixDof11> decH11(H11);
     confVectorDof1 ddq1 = decH11.solve(tau1 - C1prime);
     std::cout << "ddq1 =\t\t" << std::endl << ddq1 << std::endl;
     

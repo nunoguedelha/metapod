@@ -60,7 +60,13 @@ BOOST_AUTO_TEST_CASE (test_chda)
   // Apply the CHDA (Hybrid Dynamics) to the metapod multibody and print the result in a log file.
 
   chda<Robot>::run(robot, q, dq, ddq, torques);
-
+  
+  // Inertia H results
+  const char H_result_file[] = "chdaH.log";
+  std::ofstream logH(H_result_file, std::ofstream::out);
+  logH << "generalized_mass_matrix\n" << robot.H << std::endl;
+  logH.close();
+  
   const char torques_result_file[] = "chdaTorques.log";
   std::ofstream logTorques(torques_result_file, std::ofstream::out);
   printConf<Robot>(torques, logTorques);
@@ -71,7 +77,8 @@ BOOST_AUTO_TEST_CASE (test_chda)
   printConf<Robot>(ddq, logDdq);
   logDdq.close();
 
-  // Compare results with reference file
+  // Compare results with reference files
+  compareLogs(H_result_file, TEST_DIRECTORY "/chdaH.ref", 1e-3);
   compareLogs(torques_result_file, TEST_DIRECTORY "/chdaTorques.ref", 1e-3);
   compareLogs(ddq_result_file, TEST_DIRECTORY "/chdaDdq.ref", 1e-3);
   
