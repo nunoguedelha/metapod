@@ -105,12 +105,16 @@ template< typename Robot > struct chda
     confVectorDof1 C1prime = Q1left * CprimeTorques; // compute C1prime (nbFdDOF lines)
     // solve system
     Eigen::FullPivHouseholderQR<MatrixDof11> decH11(H11);
-    // confVectorDof1 ddq1 = decH11.solve(tau1 - C1prime);
+#if 0
+    confVectorDof1 ddq1 = decH11.solve(tau1 - C1prime);
+#else
     typename Robot::confVector ddqRef;
     std::ifstream ddqRefConf(TEST_DIRECTORY "/chdaDdq.ref");
     initConf<Robot>::run(ddqRefConf, ddqRef);
-    confVectorDof1 ddq1 = Q1left * ddqRef;
+    // confVectorDof1 ddq1 = Q1left * ddqRef;
+#endif
     
+#if 0
     // 4 - compute tau = Cprime + Qt[H11.q1" H21.q1"]
     //     tau = [tau1, tau2]t
     //     tau2 = C2prime + H21.q1"
@@ -128,6 +132,11 @@ template< typename Robot > struct chda
     ddqRff << ddq1,
               ddq2;
     ddq = Robot::Qt * ddqRff;
+#else
+    rnea< Robot, true >::run(robot, q, dq, Robot::confVector::Zero()); // compute C
+    confVector C; getTorques(robot, C);
+    torques = robot.H * ddqRef + C;
+#endif
   }
 };
 
