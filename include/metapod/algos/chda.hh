@@ -96,25 +96,15 @@ template< typename Robot > struct chda
     // 2 - compute H11 from Hprime = Q.H.Qt
     crba<Robot, true>::run(robot, q); // First, compute whole H
     MatrixNBDOFf Hrff = Robot::Q * robot.H * Robot::Qt; // H reordered
-    std::cout << Hrff << std::endl;
-    
     MatrixDof11 H11 = Hrff.template topLeftCorner<Robot::nbFdDOF, Robot::nbFdDOF>(); // H11, square matrix of size "nbFdDOF x nbFdDOF"
     
     // 3 - solve H11*q1" = tau1 - C1prime
     confVectorDof1 tau1 = Q1left * torques; // compute tau1: all known torques (nbFdDOF lines)
     confVectorDof1 C1prime = Q1left * CprimeTorques; // compute C1prime (nbFdDOF lines)
     // solve system
-    Eigen::FullPivHouseholderQR<MatrixDof11> decH11(H11);
-#if 0
+    Eigen::LLT<MatrixDof11> lltOfH11(H11);
     confVectorDof1 ddq1 = decH11.solve(tau1 - C1prime);
-#else
-    typename Robot::confVector ddqRef;
-    std::ifstream ddqRefConf(TEST_DIRECTORY "/chdaDdq.ref");
-    initConf<Robot>::run(ddqRefConf, ddqRef);
-    // confVectorDof1 ddq1 = Q1left * ddqRef;
-#endif
     
-#if 0
     // 4 - compute tau = Cprime + Qt[H11.q1" H21.q1"]
     //     tau = [tau1, tau2]t
     //     tau2 = C2prime + H21.q1"
@@ -123,20 +113,19 @@ template< typename Robot > struct chda
     confVectorDof2 tau2 = C2prime + H21 * ddq1;
     
     // 5 - complete output vectors ddq and torques
-    confVector torquesRff;
-    torquesRff << tau1,
-                  tau2;
-    torques = Robot::Qt * torquesRff;
     confVectorDof2 ddq2 = Q2left * ddq;
     confVector ddqRff;
     ddqRff << ddq1,
               ddq2;
     ddq = Robot::Qt * ddqRff;
-#else
-    rnea< Robot, true >::run(robot, q, dq, Robot::confVector::Zero()); // compute C
-    confVector C; getTorques(robot, C);
-    torques = robot.H * ddqRef + C;
-#endif
+/*
+    confVector torquesRff;
+    torquesRff << tau1,
+                  tau2;
+    torques = Robot::Qt * torquesRff;
+*/
+    rnea< Robot, true >::run(robot, q, dq, ddq);
+    getTorques(robot, torques); // get final computed torques
   }
 };
 
