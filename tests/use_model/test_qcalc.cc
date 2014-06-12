@@ -46,13 +46,13 @@ BOOST_AUTO_TEST_CASE (test_qcalc)
   std::cout << "compute re-ordered q_idx vector ddqprime = Q.ddq.\n\n";
   
   // Print all results in a log file
+  std::cout << "Print all results in a log file\n\n";
   const char result_file[] = "qcalc.log";
   std::ofstream log(result_file, std::ofstream::out);
   log << "permutation matrix Q\n" << CURRENT_MODEL_ROBOT_LFT::Q << std::endl;
   log << "initial vector ddq\n" << ddq << std::endl;
   log << "re-ordered vector ddqprime\n" << ddqprime << std::endl;
   log.close();
-  std::cout << "Print all results in a log file\n\n";
 
   // Compare results with reference file
   compareLogs(result_file, TEST_DIRECTORY "/qcalc.ref", 1e-5);

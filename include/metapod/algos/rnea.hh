@@ -32,16 +32,16 @@ namespace metapod {
 /// Takes the multibody tree type as template parameter,
 /// and recursively proceeds on the Nodes.
 
-template< typename Robot, bool jcalc = true > struct rnea{};
+template< typename Robot, bool jcalc = true, typename Robot::RobotFloatType gravity = 9.81 > struct rnea{};
 
-template< typename Robot > struct rnea< Robot, false >
+template< typename Robot, typename Robot::RobotFloatType gravity > struct rnea< Robot, false, gravity >
 {
   typedef typename Robot::RobotFloatType FloatType;
   METAPOD_TYPEDEFS;
   typedef typename Robot::confVector confVector;
 
   // update body kinematics using data from parent body and joint
-  template< int node_id, int parent_id >
+  template< int node_id, int parent_id, FloatType gravity >
   struct update_kinematics
   {
     typedef typename Nodes<Robot, node_id>::type Node;
@@ -66,8 +66,8 @@ template< typename Robot > struct rnea< Robot, false >
   };
 
   // specialization when parent_id == NO_PARENT
-  template< int node_id >
-  struct update_kinematics<node_id, NO_PARENT>
+  template< int node_id, FloatType gravity >
+  struct update_kinematics<node_id, NO_PARENT, gravity>
   {
     METAPOD_TYPEDEFS;
     typedef typename Nodes<Robot, node_id>::type Node;
@@ -84,7 +84,7 @@ template< typename Robot > struct rnea< Robot, false >
       // detailed explanation of how the gravity force is applied)
       node.body.iX0 = node.sXp;
       node.body.vi = node.joint.vj;
-      node.body.ai = sum((node.body.iX0 * GravityConstant<typename Robot::RobotFloatType>::minus_g),
+      node.body.ai = sum((node.body.iX0 * GravityConstant<typename Robot::RobotFloatType, gravity>::minus_g),
                           Motion(node.joint.S.S() * ddqi),
                           node.joint.cj,
                           (node.body.vi^node.joint.vj));
@@ -130,7 +130,7 @@ template< typename Robot > struct rnea< Robot, false >
 
       // delegate the actual computation, because the computation is
       // different when the node has a parent and when it does not.
-      update_kinematics<node_id, Node::parent_id>::run(robot, ddqi);
+      update_kinematics<node_id, Node::parent_id, gravity>::run(robot, ddqi);
 
       // fi = Ii * ai + vi x* (Ii * vi) - iX0* * fix
       Inertia &I = robot.inertias[node_id];
@@ -164,7 +164,7 @@ template< typename Robot > struct rnea< Robot, false >
   }
 };
 
-template< typename Robot > struct rnea< Robot, true >
+template< typename Robot, typename Robot::RobotFloatType gravity > struct rnea< Robot, true, gravity >
 {
   static void run(Robot & robot,
                   const typename Robot::confVector & q,
@@ -172,7 +172,7 @@ template< typename Robot > struct rnea< Robot, true >
                   const typename Robot::confVector & ddq)
   {
     jcalc< Robot >::run(robot, q, dq);
-    rnea< Robot, false >::run(robot, q, dq, ddq);
+    rnea< Robot, false, gravity >::run(robot, q, dq, ddq);
   }
 };
 

@@ -36,6 +36,8 @@ typedef CURRENT_MODEL_ROBOT<LocalFloatType> Robot;
 
 BOOST_AUTO_TEST_CASE (test_misc)
 {
+  /*************** 1 - TEST MISC METHODS ************************/
+
   MatrixXd A(3,3);
   A << 4,-1,2, -1,6,0, 2,0,5;
   std::cout << "The matrix A is" << std::endl << A << std::endl;
@@ -55,36 +57,44 @@ BOOST_AUTO_TEST_CASE (test_misc)
   std::cout << "The matrix B is" << std::endl << B << std::endl;
   std::cout << "Solution to A.x = B is" << std::endl << lltOfA.solve(B) << std::endl;
   
-  /**************************************************************/
+  /******************* REFERENCE DATA ***************************/
   
   typedef CURRENT_MODEL_ROBOT<LocalFloatType> Robot;
   
-  typedef Eigen::Matrix<Robot::RobotFloatType, Robot::nbFdDOF, Robot::nbFdDOF> MatrixDof11;
-  typedef Eigen::Matrix<Robot::RobotFloatType, Robot::nbFdDOF, 1> confVectorDof1;
-  
-  // Set configuration vectors (q, dq, ddq, torques) to reference values.
-  Robot::confVector q, dq, refDdq;
+  // Set configuration vectors (q, dq, refDdq, refTorques) to reference values.
+  Robot::confVector q, dq, refDdq, refTorques;
   
   std::ifstream qconf(TEST_DIRECTORY "/q.conf");
   std::ifstream dqconf(TEST_DIRECTORY "/dq.conf");
   std::ifstream ddqconf(TEST_DIRECTORY "/chdaDdq.ref");
+  std::ifstream torquesconf(TEST_DIRECTORY "/chdaTorques.ref");
   
   initConf<Robot>::run(qconf, q);
   initConf<Robot>::run(dqconf, dq);
   initConf<Robot>::run(ddqconf, refDdq);
+  initConf<Robot>::run(torquesconf, refTorques);
   
   qconf.close();
   dqconf.close();
   ddqconf.close();
+  torquesconf.close();
   
   Robot robot;
+  
+  /*************** 2 - TEST H11 AND H11 DECOMPOSITION ***********/
+  
+  std::cout << "2 - TEST H11 AND H11 DECOMPOSITION\n";
+  
+  typedef Eigen::Matrix<Robot::RobotFloatType, Robot::nbFdDOF, Robot::nbFdDOF> MatrixDof11;
+  typedef Eigen::Matrix<Robot::RobotFloatType, Robot::nbFdDOF, 1> confVectorDof1;
   
   // compute H11
   qcalc< Robot >::run(); // Apply the permutation matrix Q
   crba<Robot, true>::run(robot, q);
   Robot::MatrixNBDOFf Hrff = Robot::Q * robot.H * Robot::Qt; // H reordered
   MatrixDof11 Hprime = Hrff.topLeftCorner<Robot::nbFdDOF, Robot::nbFdDOF>(); // H11, square matrix of size "nbFdDOF x nbFdDOF"
-  std::cout << "Hprime symetrique?\n" << Hprime.transpose() - Hprime << std::endl;
+  std::cout << std::endl << "Hprime:\n" << Hprime << std::endl;
+  std::cout << std::endl << "Hprime symetrique?\n" << Hprime.transpose() - Hprime << std::endl;
   
   // compute refDdq11
   confVectorDof1 refDdq11 = Robot::confVector(Robot::Q * refDdq).head(Robot::nbFdDOF);
@@ -92,6 +102,7 @@ BOOST_AUTO_TEST_CASE (test_misc)
   // compute Cprime
   confVectorDof1 Cprime;
   Cprime = Hprime * refDdq11;
+  std::cout << std::endl << "Cprime:\n" << Cprime << std::endl;
   
   // compute ddq through LLT solving
   confVectorDof1 ddq, diffDdq;
@@ -123,4 +134,8 @@ BOOST_AUTO_TEST_CASE (test_misc)
   
   diffDdq = ddq - refDdq11;
   std::cout << diffDdq.squaredNorm();
+  
+  // ******** TEST compareLogs ***************************/
+  
+  compareLogs("matrix1.log", "matrix2.log", 1e-3);
 }
