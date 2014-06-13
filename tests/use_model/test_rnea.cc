@@ -31,25 +31,21 @@ BOOST_AUTO_TEST_CASE (test_rnea)
 {
   typedef CURRENT_MODEL_ROBOT<LocalFloatType> Robot;
   // Set configuration vectors (q, dq, ddq) to reference values.
-  Robot::confVector q, qInit, dq, ddq, torques, C, ref_torques;
+  Robot::confVector q, dq, ddq, torques, C, ref_torques;
 
   std::ifstream qconf(TEST_DIRECTORY "/q.conf");
-  std::ifstream qInitconf(TEST_DIRECTORY "/q_init.conf");
   std::ifstream dqconf(TEST_DIRECTORY "/dq.conf");
   std::ifstream ddqconf(TEST_DIRECTORY "/chdaDdq.ref");
 
   initConf< Robot >::run(qconf, q);
-  initConf< Robot >::run(qInitconf, qInit);
   initConf< Robot >::run(dqconf, dq);
   initConf< Robot >::run(ddqconf, ddq);
 
   qconf.close();
-  qInitconf.close();
   dqconf.close();
   ddqconf.close();
 
   Robot robot;
-  typedef typename Robot::RobotFloatType FloatType;
   
   // Apply the RNEA to the metapod multibody and print the result in a log file.
   rnea< Robot, true >::run(robot, q, dq, ddq);
@@ -57,7 +53,7 @@ BOOST_AUTO_TEST_CASE (test_rnea)
   std::ofstream log(result_file, std::ofstream::out);
   printTorques<Robot>(robot, log);
   log.close();
-
+  
   // Compare results with reference file
   compareLogs(result_file, TEST_DIRECTORY "/rnea.ref", 1e-3);
   
@@ -67,7 +63,7 @@ BOOST_AUTO_TEST_CASE (test_rnea)
   initConf< Robot >::run(torquesconf, ref_torques);
   BOOST_CHECK(ref_torques.isApprox(torques, 1e-3));
   
-  /************* check computationof C *************************/
+  /************* check computation of C ************************/
   /*   ( compare torques given by Tau = H.ddq + C )            */
   
   // compute H
@@ -77,20 +73,20 @@ BOOST_AUTO_TEST_CASE (test_rnea)
   std::ofstream log_H("rnea_H.log", std::ofstream::out);
   log_H << "generalized_mass_matrix\n" << robot.H << std::endl;
   log_H.close();
-  compareLogs("rnea_H.log", TEST_DIRECTORY "/chdaH.ref", 1e-3);
+  compareLogs("rnea_H.log", TEST_DIRECTORY "/crba.ref", 1e-3);
   
   // compute C
-  rnea< Robot, true, 0 >::run(robot, q, dq, Robot::confVector::Zero());
+  rnea< Robot, true >::run(robot, q, dq, Robot::confVector::Zero());
   getTorques(robot, C);
   
   // compute torques, this time do it from Tau = H*ddq + C
   torques = robot.H * ddq + C;
   
-  // Compare results with reference file
+  // Compare results with first torques computation
   std::ofstream log_torques("rnea_from_DynEquation.log", std::ofstream::out);
   printConf<Robot>(torques, log_torques);
   log_torques.close();
-  compareLogs("rnea_from_DynEquation.log", TEST_DIRECTORY "/rnea.ref", 1e-3);
+  compareLogs("rnea_from_DynEquation.log", "rnea.log", 1e-3);
   
   // check torques values
   //BOOST_CHECK(ref_torques.isApprox(torques, 1e-3));

@@ -100,7 +100,7 @@ struct Nodes {};
 template <typename FloatType, int gravity>
 inline Spatial::MotionTpl<FloatType> set_gravity()
 {
-  const FloatType g = gravity/100;
+  const FloatType g = (FloatType)gravity/100;
   class Vector6dTpl<FloatType>::Type g_tmp;
   g_tmp << 0,0,0,0,0,g;
   return Spatial::MotionTpl<FloatType>(g_tmp);
