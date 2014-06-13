@@ -49,6 +49,7 @@ BOOST_AUTO_TEST_CASE (test_rnea)
   ddqconf.close();
 
   Robot robot;
+  typedef typename Robot::RobotFloatType FloatType;
   
   // Apply the RNEA to the metapod multibody and print the result in a log file.
   rnea< Robot, true >::run(robot, q, dq, ddq);
@@ -79,7 +80,7 @@ BOOST_AUTO_TEST_CASE (test_rnea)
   compareLogs("rnea_H.log", TEST_DIRECTORY "/chdaH.ref", 1e-3);
   
   // compute C
-  rnea< Robot, true, false >::run(robot, q, dq, Robot::confVector::Zero());
+  rnea< Robot, true, 0 >::run(robot, q, dq, Robot::confVector::Zero());
   getTorques(robot, C);
   
   // compute torques, this time do it from Tau = H*ddq + C

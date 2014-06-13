@@ -26,22 +26,24 @@
 # include "metapod/tools/depth_first_traversal.hh"
 # include "metapod/tools/jcalc.hh"
 
+#define GRAVITY_CST 981
+
 namespace metapod {
 
 /// Templated Recursive Newton-Euler Algorithm.
 /// Takes the multibody tree type as template parameter,
 /// and recursively proceeds on the Nodes.
 
-template< typename Robot, bool jcalc = true, typename Robot::RobotFloatType gravity = 9.81 > struct rnea{};
+template< typename Robot, bool jcalc = true, int gravity =  GRAVITY_CST > struct rnea{};
 
-template< typename Robot, typename Robot::RobotFloatType gravity > struct rnea< Robot, false, gravity >
+template< typename Robot, int gravity > struct rnea< Robot, false, gravity >
 {
   typedef typename Robot::RobotFloatType FloatType;
   METAPOD_TYPEDEFS;
   typedef typename Robot::confVector confVector;
 
   // update body kinematics using data from parent body and joint
-  template< int node_id, int parent_id, FloatType gravity >
+  template< int node_id, int parent_id >
   struct update_kinematics
   {
     typedef typename Nodes<Robot, node_id>::type Node;
@@ -66,8 +68,8 @@ template< typename Robot, typename Robot::RobotFloatType gravity > struct rnea< 
   };
 
   // specialization when parent_id == NO_PARENT
-  template< int node_id, FloatType gravity >
-  struct update_kinematics<node_id, NO_PARENT, gravity>
+  template< int node_id >
+  struct update_kinematics<node_id, NO_PARENT>
   {
     METAPOD_TYPEDEFS;
     typedef typename Nodes<Robot, node_id>::type Node;
@@ -130,7 +132,7 @@ template< typename Robot, typename Robot::RobotFloatType gravity > struct rnea< 
 
       // delegate the actual computation, because the computation is
       // different when the node has a parent and when it does not.
-      update_kinematics<node_id, Node::parent_id, gravity>::run(robot, ddqi);
+      update_kinematics<node_id, Node::parent_id>::run(robot, ddqi);
 
       // fi = Ii * ai + vi x* (Ii * vi) - iX0* * fix
       Inertia &I = robot.inertias[node_id];
@@ -164,7 +166,7 @@ template< typename Robot, typename Robot::RobotFloatType gravity > struct rnea< 
   }
 };
 
-template< typename Robot, typename Robot::RobotFloatType gravity > struct rnea< Robot, true, gravity >
+template< typename Robot, int gravity > struct rnea< Robot, true, gravity >
 {
   static void run(Robot & robot,
                   const typename Robot::confVector & q,
