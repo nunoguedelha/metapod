@@ -86,8 +86,9 @@ template< typename Robot, int gravity > struct rnea< Robot, false, gravity >
       // detailed explanation of how the gravity force is applied)
       node.body.iX0 = node.sXp;
       node.body.vi = node.joint.vj;
-      node.body.ai = sum((node.body.iX0 * GravityConstant<typename Robot::RobotFloatType, gravity>::minus_g),
-                          Motion(node.joint.S.S() * ddqi),
+      const Spatial::MotionTpl<typename Robot::RobotFloatType> minus_g = GravityConstant<typename Robot::RobotFloatType, gravity>::minus_g;
+      node.body.ai = sum( (node.body.iX0 * minus_g),
+			  Motion(node.joint.S.S() * ddqi),
                           node.joint.cj,
                           (node.body.vi^node.joint.vj));
     }
