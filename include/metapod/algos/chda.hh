@@ -118,15 +118,16 @@ template< typename Robot > struct chda
     ddqRff << ddq1,
               ddq2;
     ddq = Robot::Qt * ddqRff;
-/*
+    
     confVector torquesRff;
     torquesRff << tau1,
                   tau2;
     torques = Robot::Qt * torquesRff;
-*/
+    /*
     // Here, computation of torques does not use matrix H.
     rnea< Robot, true >::run(robot, q, dq, ddq);
     getTorques(robot, torques); // get final computed torques
+    */
   }
 };
 
