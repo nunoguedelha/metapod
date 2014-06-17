@@ -97,7 +97,6 @@ template< typename Robot > struct chda
     crba<Robot, true>::run(robot, q); // First, compute whole H
     MatrixNBDOFf Hrff = Robot::Q * robot.H * Robot::Qt; // H reordered
     MatrixDof11 H11 = Hrff.template topLeftCorner<Robot::nbFdDOF, Robot::nbFdDOF>(); // H11, square matrix of size "nbFdDOF x nbFdDOF"
-    std::cout << "H11:\n" << H11 << std::endl;
     
     // 3 - solve H11*q1" = tau1 - C1prime
     confVectorDof1 tau1 = Q1left * torques; // compute tau1: all known torques (nbFdDOF lines)
@@ -105,7 +104,6 @@ template< typename Robot > struct chda
     // solve system
     Eigen::LLT<MatrixDof11> lltOfH11(H11);
     confVectorDof1 ddq1 = lltOfH11.solve(tau1 - C1prime);
-    std::cout << "const:\n" << tau1 - C1prime << std::endl;
     
     // 4 - compute tau = Cprime + Qt[H11.q1" H21.q1"]
     //     tau = [tau1, tau2]t
@@ -126,6 +124,7 @@ template< typename Robot > struct chda
                   tau2;
     torques = Robot::Qt * torquesRff;
 */
+    // Here, computation of torques does not use matrix H.
     rnea< Robot, true >::run(robot, q, dq, ddq);
     getTorques(robot, torques); // get final computed torques
   }
