@@ -16,36 +16,36 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with metapod.  If not, see <http://www.gnu.org/licenses/>.
 
-// This test applies the crba on a test model with a reference configuration,
+// This test applies the hybrid crba (hcrba) on a test model with a reference configuration,
 // then compares the computed inertia matrix with the reference inertia matrix.
 
 // Common test tools
 #include "common.hh"
-#include <metapod/algos/crba.hh>
+#include <metapod/algos/hcrba.hh>
 
 using namespace metapod;
 
 typedef double LocalFloatType;
 
-BOOST_AUTO_TEST_CASE (test_crba)
+BOOST_AUTO_TEST_CASE (test_hcrba)
 {
   typedef CURRENT_MODEL_ROBOT<LocalFloatType> CURRENT_MODEL_ROBOT_LFT;
   // set configuration vector q to reference value.
   CURRENT_MODEL_ROBOT_LFT::confVector q;
-  std::ifstream qconf(TEST_DIRECTORY "/q_init.conf");
+  std::ifstream qconf(TEST_DIRECTORY "/q.conf");
   initConf<CURRENT_MODEL_ROBOT_LFT>::run(qconf, q);
   qconf.close();
 
   CURRENT_MODEL_ROBOT_LFT robot;
 
-  // Apply the CRBA to the metapod multibody and print the result in a log file
-  crba< CURRENT_MODEL_ROBOT_LFT, true >::run(robot, q); // Update geometry and run the CRBA
-  const char result_file[] = "crba.log";
+  // Apply the Hybrid CRBA to the metapod multibody and print the result in a log file
+  hcrba< CURRENT_MODEL_ROBOT_LFT, true >::run(robot, q); // Update geometry and run the Hybrid CRBA
+  const char result_file[] = "hcrba.log";
   std::ofstream log(result_file, std::ofstream::out);
 
   log << "generalized_mass_matrix\n" << robot.H << std::endl;
   log.close();
 
   // Compare results with reference file
-  compareLogs(result_file, TEST_DIRECTORY "/crba.ref", 1e-3);
+  compareLogs(result_file, TEST_DIRECTORY "/hcrba.ref", 1e-3);
 }

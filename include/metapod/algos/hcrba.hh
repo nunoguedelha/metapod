@@ -20,8 +20,8 @@
  * based on Featherstone's Rigid Body Dynamics Algorithms.
  */
 
-#ifndef METAPOD_CRBA_HH
-# define METAPOD_CRBA_HH
+#ifndef METAPOD_HCRBA_HH
+# define METAPOD_HCRBA_HH
 
 # include "metapod/tools/common.hh"
 # include "metapod/tools/jcalc.hh"
@@ -29,38 +29,104 @@
 # include "metapod/tools/backward_traversal_prev.hh"
 
 namespace metapod {
+
+  typedef enum NuOfFwdDynCheck
+  {
+    NUFD_NOT_CHECKED,
+    NUFD_TRUE,
+    NUFD_FALSE
+  };
+
 namespace internal {
 
-// helper function: update Parent inertia with the contribution of child Node
-  template < typename Robot,  int parent_id, int node_id >
-struct crba_update_parent_inertia
-{
-  typedef typename Nodes<Robot, parent_id>::type Parent;
-  typedef typename Nodes<Robot, node_id>::type Node;
-  static void run(Robot& robot)
+  // helper function: convert bool to NuOfFwdDynCheck enum
+  template < bool jointNuOfFwdDyn > struct jointNuOfFwdDyn2bool {};
+  template <> struct jointNuOfFwdDyn2bool<true> {static const NuOfFwdDynCheck value=NUFD_TRUE;};
+  template <> struct jointNuOfFwdDyn2bool<false> {static const NuOfFwdDynCheck value=NUFD_FALSE;};
+
+  // helper function: update Parent inertia with the contribution of child Node
+  template < typename Robot, int parent_id, int node_id, NuOfFwdDynCheck nuOfFwdDynCheck=NUFD_NOT_CHECKED > struct hcrba_update_parent_inertia {};
+  // check if node is part of nu(fd)
+  template < typename Robot, int parent_id, int node_id >
+  struct hcrba_update_parent_inertia<Robot, parent_id, node_id, NUFD_NOT_CHECKED>
   {
-    Parent& parent = boost::fusion::at_c<parent_id>(robot.nodes);
-    Node& node = boost::fusion::at_c<node_id>(robot.nodes);
-    parent.body.Iic = parent.body.Iic + node.sXp.applyInv(node.body.Iic);
-  }
-};
-// Do nothing if parent_id is NO_PARENT
-template < typename Robot, int node_id >
-struct crba_update_parent_inertia<Robot, NO_PARENT, node_id>
-{
-  static void run(Robot&) {}
-};
+    static void run(Robot& robot)
+    {
+      typedef typename boost::fusion::result_of::value_at_c<typename Robot::NodeVector, node_id>::type Node;
+      hcrba_update_parent_inertia<Robot, parent_id, node_id, jointNuOfFwdDyn2bool<Node::jointNuOfFwdDyn>::value >::run(robot);
+    }
+  };
+  // update parent inertia if node is part of nu(fd)
+  template < typename Robot, int parent_id, int node_id >
+  struct hcrba_update_parent_inertia<Robot, parent_id, node_id, NUFD_TRUE>
+  {
+    typedef typename Nodes<Robot, parent_id>::type Parent;
+    typedef typename Nodes<Robot, node_id>::type Node;
+    static void run(Robot& robot)
+    {
+      Parent& parent = boost::fusion::at_c<parent_id>(robot.nodes);
+      Node& node = boost::fusion::at_c<node_id>(robot.nodes);
+      parent.body.Iic = parent.body.Iic + node.sXp.applyInv(node.body.Iic);
+    }
+  };
+  // Do nothing if parent_id is not part of nu(fd)
+  template < typename Robot, int parent_id, int node_id >
+  struct hcrba_update_parent_inertia<Robot, parent_id, node_id, NUFD_FALSE>
+  {
+    static void run(Robot&) {}
+  };
+  // Do nothing if parent_id is NO_PARENT
+  template < typename Robot, int node_id >
+  struct hcrba_update_parent_inertia<Robot, NO_PARENT, node_id, NUFD_NOT_CHECKED> // we specialized nuOfFwdDynCheck in order to avoid 
+  {                                                                               // ambiguous instantiation with first specialization
+    static void run(Robot&) {}
+  };
+
+  // helper function: initialization of Iic if node is part of a subtree supported by at least 1 FD joint ( nu(fd) )
+  template < typename Robot, typename AnyNode, bool jointNuOfFwdDyn > struct init_Iic {};
+  // specialization if node is part of nu(fd)
+  template < typename Robot, typename AnyNode >
+  struct init_Iic<Robot, AnyNode, true>
+  {
+    static void run(Robot& robot)
+    {
+      AnyNode& ni = boost::fusion::at_c<AnyNode::id>(robot.nodes);
+      ni.body.Iic = robot.inertias[AnyNode::id];
+    }
+  };
+  // specialization if node is not part of nu(fd)
+  template < typename Robot, typename AnyNode >
+  struct init_Iic<Robot, AnyNode, false>
+  {
+    static void run(Robot&) {}
+  };
+
+  // helper function: if node is part of fd nodes, compute F = Ici * Si
+  template < typename Node, bool jointFwdDyn > struct IicMultS2jointF {};
+  template < typename Node >
+  struct IicMultS2jointF<Node, true>
+  {
+    static void run(Node& node)
+    {
+      node.joint_F = node.body.Iic * node.joint.S;
+    }
+  };
+  template < typename Node >
+  struct IicMultS2jointF<Node, false>
+  {
+    static void run(Node&) {}
+  };
 
 } // end of namespace metapod::internal
 
 // frontend
-template< typename Robot, bool jcalc = true > struct crba {};
-template< typename Robot > struct crba<Robot, false>
+template< typename Robot, bool jcalc = true > struct hcrba {};
+template< typename Robot > struct hcrba<Robot, false>
 {
   template <typename AnyRobot, int node_id >
   struct DftVisitor
   {
-    typedef typename Nodes<Robot, node_id>::type NI;
+    typedef typename Nodes<AnyRobot, node_id>::type NI;
     typedef NI Node;
     // Update NJ with data from PrevNJ
     template< typename AnyyRobot, int nj_id, int prev_nj_id >
@@ -92,16 +158,15 @@ template< typename Robot > struct crba<Robot, false>
     // forward propagation
     static void discover(AnyRobot& robot)
     {
-      NI& ni = boost::fusion::at_c<node_id>(robot.nodes);
-      ni.body.Iic = robot.inertias[node_id];
+      internal::init_Iic<AnyRobot, Node, Node::jointNuOfFwdDyn>::run(robot);
     }
 
     static void finish(AnyRobot& robot)
     {
       Node& node = boost::fusion::at_c<node_id>(robot.nodes);
-      internal::crba_update_parent_inertia<AnyRobot, Node::parent_id, node_id>::run(robot);
-      node.joint_F = node.body.Iic * node.joint.S;
-
+      internal::hcrba_update_parent_inertia<AnyRobot, Node::parent_id, node_id, NUFD_NOT_CHECKED>::run(robot);
+      internal::IicMultS2jointF<Node, Node::jointFwdDyn>::run(node);
+      
       robot.H.template block<Node::Joint::NBDOF, Node::Joint::NBDOF>(
               Node::q_idx, Node::q_idx)
                        = node.joint.S.transpose() * node.joint_F;
@@ -120,12 +185,12 @@ template< typename Robot > struct crba<Robot, false>
 };
 
 // frontend
-template< typename Robot > struct crba< Robot, true >
+template< typename Robot > struct hcrba< Robot, true >
 {
   static void run(Robot& robot, const typename Robot::confVector& q)
   {
     jcalc< Robot >::run(robot, q, Robot::confVector::Zero());
-    crba< Robot, false >::run(robot);
+    hcrba< Robot, false >::run(robot);
   }
 };
 
