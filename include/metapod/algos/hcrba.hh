@@ -101,20 +101,30 @@ namespace internal {
     static void run(Robot&) {}
   };
 
-  // helper function: if node is part of fd nodes, compute F = Ici * Si
-  template < typename Node, bool jointFwdDyn > struct IicMultS2jointF {};
-  template < typename Node >
-  struct IicMultS2jointF<Node, true>
+  // helper function: if node is in FD, perform all backward computation of Hij values.
+  // "i" is the deepest FD node in the nu(fd) subtree.
+  // "j" is the root FD node in the nu(fd) subtree.
+  template < template <typename AnyRobot, int any_node_id, int any_prev_node_id> class BwdtVisitor, 
+	     typename Robot, typename AnyNode, int node_id, bool jointFwdDyn > struct backwardHijAcrossNuOfFd {};
+  template < template <typename AnyRobot, int any_node_id, int any_prev_node_id> class BwdtVisitor, 
+	     typename Robot, typename AnyNode, int node_id >
+  struct backwardHijAcrossNuOfFd<BwdtVisitor, Robot, AnyNode, node_id, true>
   {
-    static void run(Node& node)
+    static void run(Robot& robot)
     {
+      AnyNode& node = boost::fusion::at_c<node_id>(robot.nodes);
       node.joint_F = node.body.Iic * node.joint.S;
+      
+      robot.H.template block<AnyNode::Joint::NBDOF, AnyNode::Joint::NBDOF>(AnyNode::q_idx, AnyNode::q_idx)
+	= node.joint.S.transpose() * node.joint_F;
+      metapod::backward_traversal_prev< BwdtVisitor, Robot, node_id >::run(robot);
     }
   };
-  template < typename Node >
-  struct IicMultS2jointF<Node, false>
+  template < template <typename AnyRobot, int any_node_id, int any_prev_node_id> class BwdtVisitor, 
+	     typename Robot, typename Node, int node_id >
+  struct backwardHijAcrossNuOfFd<BwdtVisitor, Robot, Node, node_id, false>
   {
-    static void run(Node&) {}
+    static void run(Robot&) {}
   };
 
 } // end of namespace metapod::internal
@@ -163,14 +173,8 @@ template< typename Robot > struct hcrba<Robot, false>
 
     static void finish(AnyRobot& robot)
     {
-      Node& node = boost::fusion::at_c<node_id>(robot.nodes);
       internal::hcrba_update_parent_inertia<AnyRobot, Node::parent_id, node_id, NUFD_NOT_CHECKED>::run(robot);
-      internal::IicMultS2jointF<Node, Node::jointFwdDyn>::run(node);
-      
-      robot.H.template block<Node::Joint::NBDOF, Node::Joint::NBDOF>(
-              Node::q_idx, Node::q_idx)
-                       = node.joint.S.transpose() * node.joint_F;
-      backward_traversal_prev< BwdtVisitor, Robot, node_id >::run(robot);
+      internal::backwardHijAcrossNuOfFd<BwdtVisitor, AnyRobot, Node, node_id, Node::jointFwdDyn>::run(robot);
     }
   };
 
