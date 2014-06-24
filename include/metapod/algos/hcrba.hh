@@ -1,6 +1,6 @@
 // Copyright 2011, 2012, 2013
 //
-// Nuno Guedelha (CNRS)
+// Nuno Guedelha (CNRS-LAAS)
 //
 // This file is part of metapod.
 // metapod is free software: you can redistribute it and/or modify
@@ -27,6 +27,7 @@
 # include "metapod/tools/jcalc.hh"
 # include "metapod/tools/depth_first_traversal.hh"
 # include "metapod/tools/backward_traversal_prev.hh"
+# include "metapod/tools/rootNodeId_Of_NuFD.hh"
 
 namespace metapod {
 
@@ -121,7 +122,7 @@ namespace internal {
       
       // j=i && j=lambda(j) <=> backward_traversal_prev with "start_node_id" param
       // while lambda(j) belongTo nuFD <=> backward_traversal_prev with "end_node_id" = root node of nu(FD)
-      const int end_node_id = rootNodeId_Of_NuFD<Robot, StartNode, false, StartNode::parent_id, STEP_CHECK_NO_PARENT>::value;
+      const int end_node_id = rootNodeId_Of_NuFD<Robot, StartNode>::value;
       metapod::backward_traversal_prev< BwdtVisitor, Robot, start_node_id, end_node_id >::run(robot);
     }
   };

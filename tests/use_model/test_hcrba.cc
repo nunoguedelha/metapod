@@ -43,26 +43,26 @@ BOOST_AUTO_TEST_CASE (test_hcrba)
   hcrba< CURRENT_MODEL_ROBOT_LFT, true >::run(robot, q); // Update geometry and run the Hybrid CRBA
   const char result_file[] = "hcrba.log";
   std::ofstream log(result_file, std::ofstream::out);
-  Eigen::Matrix< LocalFloatType, CURRENT_MODEL_ROBOT_LFT::NBDOF, CURRENT_MODEL_ROBOT_LFT::NBDOF > sparseH= robot.H;
+  Eigen::Matrix< LocalFloatType, CURRENT_MODEL_ROBOT_LFT::NBDOF, CURRENT_MODEL_ROBOT_LFT::NBDOF > nufdH= robot.H;
 
   log << "generalized_mass_matrix\n" << robot.H << std::endl;
   log.close();
 
   // Apply the CRBA to the metapod multibody and print the result in a log file
-  crba< CURRENT_MODEL_ROBOT_LFT, true >::run(robot, q); // Update geometry and run the Hybrid CRBA
+  crba< CURRENT_MODEL_ROBOT_LFT, true >::run(robot, q); // Update geometry and run the CRBA
   Eigen::Matrix< LocalFloatType, CURRENT_MODEL_ROBOT_LFT::NBDOF, CURRENT_MODEL_ROBOT_LFT::NBDOF > fullH= robot.H;
   
   // Compare results with reference file
   //compareLogs("hcrba.log", "crba.ref", 1e-3);
   
-  // compare non zero terms in sparse H with respective terms full H 
-  Eigen::Matrix< LocalFloatType, CURRENT_MODEL_ROBOT_LFT::NBDOF, CURRENT_MODEL_ROBOT_LFT::NBDOF > diffH = fullH-sparseH;
+  // compare non zero terms in nufdH with respective terms fullH
+  Eigen::Matrix< LocalFloatType, CURRENT_MODEL_ROBOT_LFT::NBDOF, CURRENT_MODEL_ROBOT_LFT::NBDOF > diffH = fullH-nufdH;
   Eigen::Array< LocalFloatType, CURRENT_MODEL_ROBOT_LFT::NBDOF, CURRENT_MODEL_ROBOT_LFT::NBDOF > prodH;
   for(int i=0; i<CURRENT_MODEL_ROBOT_LFT::NBDOF; i++)
   {
     for(int j=0; j<CURRENT_MODEL_ROBOT_LFT::NBDOF; j++)
     {
-      prodH(i,j) = sparseH(i,j) * diffH(i,j);
+      prodH(i,j) = nufdH(i,j) * diffH(i,j);
     }
   }
   assert((prodH == 0).all());
