@@ -53,8 +53,8 @@ namespace internal {
   {
     static void run(Robot& robot)
     {
-      typedef typename boost::fusion::result_of::value_at_c<typename Robot::NodeVector, node_id>::type Node;
-      hcrba_update_parent_inertia<Robot, parent_id, node_id, bool2NuOfFwdDynCehck<Node::jointNuOfFwdDyn>::value >::run(robot);
+      typedef typename boost::fusion::result_of::value_at_c<typename Robot::NodeVector, parent_id>::type Parent;
+      hcrba_update_parent_inertia<Robot, parent_id, node_id, bool2NuOfFwdDynCehck<Parent::jointNuOfFwdDyn>::value >::run(robot);
     }
   };
   // update parent inertia if node is part of nu(fd)
@@ -133,6 +133,27 @@ namespace internal {
     static void run(Robot&) {}
   };
 
+  template < typename Robot, typename NI, int nj_id >
+  struct setHijHjiFromFnS
+  {
+    static void run(Robot& robot, NI& ni)
+    {
+      typedef typename boost::fusion::result_of::value_at_c<typename Robot::NodeVector, nj_id>::type NJ;
+      NJ& nj = boost::fusion::at_c<nj_id>(robot.nodes);
+
+      robot.H.template
+	block< NI::Joint::NBDOF, NJ::Joint::NBDOF >
+	     ( NI::q_idx, NJ::q_idx )
+	= ni.joint_F.transpose() * nj.joint.S.S();               // Hij = FT * Sj
+      robot.H.template
+	block< NJ::Joint::NBDOF, NI::Joint::NBDOF >
+	     ( NJ::q_idx, NI::q_idx )
+	= robot.H.template
+	block< NI::Joint::NBDOF, NJ::Joint::NBDOF >
+	     ( NI::q_idx, NJ::q_idx ).transpose();               // Hji = HijT
+    }
+  };
+
 } // end of namespace metapod::internal
 
 // frontend
@@ -148,28 +169,17 @@ template< typename Robot > struct hcrba<Robot, false>
     template< typename AnyyRobot, int nj_id, int prev_nj_id >
     struct BwdtVisitor
     {
-      typedef typename Nodes<AnyyRobot, nj_id>::type NJ;
       typedef typename Nodes<AnyyRobot, prev_nj_id>::type PrevNJ;
       static void discover(AnyyRobot& robot)
       {
-	// get nodes ni, nj, prev_nj. Iteration starts at: ni = i, nj = lambda(i)
+	// get nodes ni, prev_nj. Iteration starts at: ni = i
         NI& ni = boost::fusion::at_c<node_id>(robot.nodes);
-        NJ& nj = boost::fusion::at_c<nj_id>(robot.nodes);
         PrevNJ& prev_nj = boost::fusion::at_c<prev_nj_id>(robot.nodes);
 
 	// for below processing, joint_F stands for jFi. joint_F is handled like a buffer,
 	// every new value overwrites the previous one (it's a temp parameter).
         ni.joint_F = prev_nj.sXp.mulMatrixTransposeBy(ni.joint_F); // F = lbd(j)Xj * F
-        robot.H.template
-          block< NI::Joint::NBDOF, NJ::Joint::NBDOF >
-               ( NI::q_idx, NJ::q_idx )
-          = ni.joint_F.transpose() * nj.joint.S.S();               // Hij = FT * Sj
-        robot.H.template
-          block< NJ::Joint::NBDOF, NI::Joint::NBDOF >
-               ( NJ::q_idx, NI::q_idx )
-          = robot.H.template
-              block< NI::Joint::NBDOF, NJ::Joint::NBDOF >
-	           ( NI::q_idx, NJ::q_idx ).transpose();           // Hji = HijT
+	internal::setHijHjiFromFnS<AnyyRobot, NI, nj_id>::run(robot, ni);
       }
 
       static void finish(AnyyRobot&) {}
