@@ -44,10 +44,10 @@ BOOST_AUTO_TEST_CASE (test_chda)
 
   rnea<Robot>::run(robot, q, dq, ddq);
   getTorques(robot, ref_torques);
-  std::ofstream refTorquesconf(TEST_DIRECTORY "/chdaTorques.conf", std::ofstream::out);
+  std::ofstream refTorquesconf("chdaTorques.ref", std::ofstream::out);
   printConf<Robot>(ref_torques, refTorquesconf);
   refTorquesconf.close();
-  std::ifstream torquesconf(TEST_DIRECTORY "/chdaTorques.ref");
+  std::ifstream torquesconf("chdaTorques.ref");
 
   initConf<Robot, HYBRID_DDQ>::run(ddqconf, ddq);
   initConf<Robot, HYBRID_TORQUES>::run(torquesconf, torques);
@@ -88,14 +88,14 @@ BOOST_AUTO_TEST_CASE (test_chda)
 
   // Compare results with reference files
   compareLogs(H_result_file, TEST_DIRECTORY "/chdaH.ref", 1e-3);
-  compareLogs(torques_result_file, TEST_DIRECTORY "/chdaTorques.ref", 1e-3);
+  compareLogs(torques_result_file, "chdaTorques.ref", 1e-3);
   compareLogs(ddq_result_file, TEST_DIRECTORY "/chdaDdq.ref", 1e-3);
   
   /*
   // smoke test: torques variable value is not checked
   getTorques(robot, torques);
   getDdQ(robot, ddq);
-  std::ifstream chdaTorquesRef(TEST_DIRECTORY "/chdaTorques.ref");
+  std::ifstream chdaTorquesRef("chdaTorques.ref");
   initConf< Robot >::run(chdaTorquesRef, ref_torques);
   BOOST_CHECK(ref_torques.isApprox(torques, 1e-3));
   chdaTorquesRef.close();
