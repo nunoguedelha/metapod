@@ -22,6 +22,7 @@
 // Common test tools
 #include "common.hh"
 #include <metapod/algos/chda.hh>
+#include <metapod/algos/rnea.hh>
 
 using namespace metapod;
 
@@ -31,14 +32,23 @@ BOOST_AUTO_TEST_CASE (test_chda)
   typedef CURRENT_MODEL_ROBOT<LocalFloatType> Robot;
   // Set configuration vectors (q, dq, ddq, torques) to reference values.
   Robot::confVector q, dq, ddq, torques, ref_torques;
+  Robot robot;
   
   std::ifstream qconf(TEST_DIRECTORY "/q.conf");
   std::ifstream dqconf(TEST_DIRECTORY "/dq.conf");
   std::ifstream ddqconf(TEST_DIRECTORY "/chdaDdq.ref");
-  std::ifstream torquesconf(TEST_DIRECTORY "/chdaTorques.ref");
 
   initConf<Robot>::run(qconf, q);
   initConf<Robot>::run(dqconf, dq);
+  initConf<Robot>::run(ddqconf, ddq);
+
+  rnea<Robot>::run(robot, q, dq, ddq);
+  getTorques(robot, ref_torques);
+  std::ofstream refTorquesconf(TEST_DIRECTORY "/chdaTorques.conf", std::ofstream::out);
+  printConf<Robot>(ref_torques, refTorquesconf);
+  refTorquesconf.close();
+  std::ifstream torquesconf(TEST_DIRECTORY "/chdaTorques.ref");
+
   initConf<Robot, HYBRID_DDQ>::run(ddqconf, ddq);
   initConf<Robot, HYBRID_TORQUES>::run(torquesconf, torques);
 
@@ -56,7 +66,6 @@ BOOST_AUTO_TEST_CASE (test_chda)
   logDdqFdIdInit.close();
 
   
-  Robot robot;
   // Apply the CHDA (Hybrid Dynamics) to the metapod multibody and print the result in a log file.
 
   chda<Robot>::run(robot, q, dq, ddq, torques);
