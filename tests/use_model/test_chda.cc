@@ -21,6 +21,7 @@
 
 // Common test tools
 #include "common.hh"
+#include <metapod/timer/timer.hh>
 #include <metapod/algos/chda.hh>
 #include <metapod/algos/rnea.hh>
 
@@ -31,7 +32,7 @@ BOOST_AUTO_TEST_CASE (test_chda)
 {
   typedef CURRENT_MODEL_ROBOT<LocalFloatType> Robot;
   // Set configuration vectors (q, dq, ddq, torques) to reference values.
-  Robot::confVector q, dq, ddq, torques, ref_torques;
+  Robot::confVector q, dq, ddq, torques, ref_ddq, ref_torques;
   Robot robot;
   
   std::ifstream qconf(TEST_DIRECTORY "/q.conf");
@@ -40,9 +41,9 @@ BOOST_AUTO_TEST_CASE (test_chda)
 
   initConf<Robot>::run(qconf, q);
   initConf<Robot>::run(dqconf, dq);
-  initConf<Robot>::run(ddqconf, ddq);
+  initConf<Robot>::run(ddqconf, ref_ddq);
 
-  rnea<Robot>::run(robot, q, dq, ddq);
+  rnea<Robot>::run(robot, q, dq, ref_ddq);
   getTorques(robot, ref_torques);
   std::ofstream refTorquesconf("chdaTorques.ref", std::ofstream::out);
   printConf<Robot>(ref_torques, refTorquesconf);
@@ -91,17 +92,41 @@ BOOST_AUTO_TEST_CASE (test_chda)
   compareLogs(torques_result_file, "chdaTorques.ref", 1e-3);
   compareLogs(ddq_result_file, TEST_DIRECTORY "/chdaDdq.ref", 1e-3);
   
-  /*
-  // smoke test: torques variable value is not checked
-  getTorques(robot, torques);
-  getDdQ(robot, ddq);
-  std::ifstream chdaTorquesRef("chdaTorques.ref");
-  initConf< Robot >::run(chdaTorquesRef, ref_torques);
-  BOOST_CHECK(ref_torques.isApprox(torques, 1e-3));
-  chdaTorquesRef.close();
-  std::ifstream chdaDdqRef(TEST_DIRECTORY "/chdaDdQ.ref");
-  initConf< Robot >::run(chdaDdqRef, ref_ddq);
-  BOOST_CHECK(ref_ddq.isApprox(ddq, 1e-3));
-  chdaDdqRef.close();
-  */
+  //****** RANDOM VECTORS *************************************************************
+  
+  Timer* timer = make_timer(); timer->start(); timer->stop();
+  int outer_loop_count;
+  int inner_loop_count;
+
+  for(outer_loop_count=1; outer_loop_count<100; ++outer_loop_count)
+  {
+    q = Robot::confVector::Random() * M_PI;
+    dq = Robot::confVector::Random();
+    ref_ddq = Robot::confVector::Random();
+    rnea<Robot>::run(robot, q, dq, ref_ddq);
+    getTorques(robot, ref_torques);
+    
+    initConf<Robot, HYBRID_DDQ, Robot::confVector>::run(ref_ddq, ddq);
+    initConf<Robot, HYBRID_TORQUES, Robot::confVector>::run(ref_torques, torques);
+
+    for(inner_loop_count=1; inner_loop_count<1000; inner_loop_count++)
+    {
+      timer->resume();
+
+      // Apply the CHDA (Hybrid Dynamics) to the metapod multibody
+      chda<Robot>::run(robot, q, dq, ddq, torques);
+
+      timer->stop();
+    }
+
+    // compare results to ref data
+    BOOST_CHECK(ref_torques.isApprox(torques, 1e-3));
+    BOOST_CHECK(ref_ddq.isApprox(ddq, 1e-3));
+
+    std::cout << "+1000 iterations OK" << std::endl;
+  }
+  double total_time_us = timer->elapsed_wall_clock_time_in_us();
+  std::cout << "CHDA average execution time is : "
+	    << total_time_us/double(inner_loop_count * outer_loop_count)
+	    << "µs\n";
 }

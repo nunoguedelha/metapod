@@ -116,6 +116,8 @@ namespace internal {
   {
     static void run()
     {
+      Robot::fdNodesFirstFillIndex = 0;
+      Robot::idNodesFillIndex = 0;
       depth_first_traversal<internal::QcalcVisitor, Robot>::run();
       internal::HandleJointToQmatrix<Robot, 0, 0, internal::BUILD, true>::run();
     }

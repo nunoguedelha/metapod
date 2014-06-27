@@ -50,8 +50,10 @@
 # include <metapod/timer/timer.hh>
 # include <metapod/tools/jcalc.hh>
 # include <metapod/tools/bcalc.hh>
+# include <metapod/tools/qcalc.hh>
 # include <metapod/algos/rnea.hh>
 # include <metapod/algos/crba.hh>
+# include <metapod/algos/chda.hh>
 # include <metapod/algos/jac.hh>
 # include <metapod/tools/jac_point_robot.hh>
 
@@ -67,8 +69,8 @@ namespace metapod
       typedef boost::function<void(Robot& robot,
                                    const confVector& q,
                                    const confVector& dq,
-                                   const confVector& ddq,
-                                   const confVector& torques)> functor_t;
+                                   confVector& ddq,
+                                   confVector& torques)> functor_t;
 
       Runner(functor_t f, const::std::string & msg):
         timer_(make_timer()),
@@ -98,8 +100,8 @@ namespace metapod
       void run(Robot& robot,
                const confVector& q,
                const confVector& dq,
-               const confVector& ddq,
-	       const confVector& torques)
+               confVector& ddq,
+	       confVector& torques)
       {
         if (!outer_loop_count_)
           timer_->start();
@@ -180,6 +182,9 @@ namespace metapod
         runners.push_back(Runner<Robot>(
             boost::bind<void>(crba<Robot, false>::run, _1, _2),
             std::string("crba (without jcalc)")));
+	runners.push_back(Runner<Robot>(
+	    boost::bind<void>(chda<Robot>::run, _1, _2, _3, _4, _5), 
+	    std::string("chda")));
         runners.push_back(Runner<Robot>(
             boost::bind<void>(jac_wrapper<Robot>::run, _1),
             std::string("jac (without jcalc)")));
@@ -191,7 +196,7 @@ namespace metapod
                   << "Model NBDOF : " << Robot::NBDOF << std::endl;
         for(int i=0; i<100; ++i)
         {
-          q = confVector::Random() * M_PI; std::cout << q << std::endl;
+          q = confVector::Random() * M_PI;
           dq = confVector::Random();
           ddq = confVector::Random();
           torques = confVector::Random();
