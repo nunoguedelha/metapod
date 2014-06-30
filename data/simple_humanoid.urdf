@@ -256,7 +256,7 @@
     <parent link="NP"/>
     <child link="WAIST_LINK0"/>
     <origin xyz="0 0 0" rpy="0 0 0"/>
-    <dynamics fwd_dyn="1"></dynamics>
+    <dynamics fwd_dyn="0"></dynamics>
   </joint>
   <joint name="RLEG_HIP_R" type="revolute">
     <origin xyz="0 -0.09 0" rpy="0 0 0"/>
@@ -300,7 +300,7 @@
     <parent link="RLEG_LINK4"/>
     <child link="RLEG_LINK5"/>
     <limit effort="30" lower="0" upper="0" velocity="0" />
-    <dynamics fwd_dyn="0"></dynamics>
+    <dynamics fwd_dyn="1"></dynamics>
   </joint>
 
   <joint name="RLEG_ANKLE_R" type="revolute">
@@ -309,7 +309,7 @@
     <parent link="RLEG_LINK5"/>
     <child link="RLEG_LINK6"/>
     <limit effort="30" lower="0" upper="0" velocity="0" />
-    <dynamics fwd_dyn="0"></dynamics>
+    <dynamics fwd_dyn="1"></dynamics>
   </joint>
 
   <joint name="RARM_SHOULDER_P" type="revolute">
@@ -345,7 +345,7 @@
     <parent link="RARM_LINK3"/>
     <child link="RARM_LINK4"/>
     <limit effort="30" lower="0" upper="0" velocity="0" />
-    <dynamics fwd_dyn="0"></dynamics>
+    <dynamics fwd_dyn="1"></dynamics>
   </joint>
 
   <joint name="RARM_WRIST_Y" type="revolute">
@@ -408,7 +408,7 @@
     <parent link="LLEG_LINK3"/>
     <child link="LLEG_LINK4"/>
     <limit effort="30" lower="0" upper="0" velocity="0" />
-    <dynamics fwd_dyn="0"></dynamics>
+    <dynamics fwd_dyn="1"></dynamics>
   </joint>
 
   <joint name="LLEG_ANKLE_P" type="revolute">
@@ -435,7 +435,7 @@
     <parent link="WAIST_LINK3"/>
     <child link="LARM_LINK1"/>
     <limit effort="30" lower="0" upper="0" velocity="0" />
-    <dynamics fwd_dyn="0"></dynamics>
+    <dynamics fwd_dyn="1"></dynamics>
   </joint>
 
   <joint name="LARM_SHOULDER_R" type="revolute">
@@ -444,7 +444,7 @@
     <parent link="LARM_LINK1"/>
     <child link="LARM_LINK2"/>
     <limit effort="30" lower="0" upper="0" velocity="0" />
-    <dynamics fwd_dyn="0"></dynamics>
+    <dynamics fwd_dyn="1"></dynamics>
   </joint>
 
   <joint name="LARM_SHOULDER_Y" type="revolute">
@@ -453,7 +453,7 @@
     <parent link="LARM_LINK2"/>
     <child link="LARM_LINK3"/>
     <limit effort="30" lower="0" upper="0" velocity="0" />
-    <dynamics fwd_dyn="0"></dynamics>
+    <dynamics fwd_dyn="1"></dynamics>
   </joint>
 
   <joint name="LARM_ELBOW" type="revolute">

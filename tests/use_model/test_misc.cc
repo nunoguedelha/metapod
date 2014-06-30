@@ -138,4 +138,9 @@ BOOST_AUTO_TEST_CASE (test_misc)
   // ******** TEST compareLogs ***************************/
   
   compareLogs("matrix1.log", "matrix2.log", 1e-3);
+
+  // ******** TEST Q operations **************************/
+
+  std::cout << Robot::Qt * Robot::Q;
+  assert(Robot::MatrixNBDOFf::Identity() == Robot::Qt * Robot::Q);
 }
