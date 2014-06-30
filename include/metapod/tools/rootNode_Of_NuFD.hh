@@ -17,10 +17,9 @@
 
 /// Implementation of an algorithm that browses the nu(FD) subtree until finding the root node.
 
-#ifndef METAPOD_ROOTNODEID_OF_NUFD_HH
-# define METAPOD_ROOTNODEID_OF_NUFD_HH
+#ifndef METAPOD_ROOTNODE_OF_NUFD_HH
+# define METAPOD_ROOTNODE_OF_NUFD_HH
 
-# include <metapod/tools/rootNodeId_Of_NuFD.hh>
 
 namespace metapod {
 
@@ -64,9 +63,11 @@ namespace metapod {
   } // end of namespace internal.
 
   template < typename Robot, typename StartNode >
-  struct rootNodeId_Of_NuFD
+  struct rootNode_Of_NuFD
   {
-    static const int value = internal::rootNodeId_Of_NuFD_internal<Robot, StartNode::id, false, StartNode::parent_id, internal::STATE_CHECK_PARENT>::value;
+    static const int id = internal::rootNodeId_Of_NuFD_internal<Robot, StartNode::id, false, StartNode::parent_id, internal::STATE_CHECK_PARENT>::value;
+    typedef typename boost::fusion::result_of::value_at_c<typename Robot::NodeVector, id>::type type;
+    static const int parent_id = type::parent_id;
   };
 } // end of namespace metapod.
 

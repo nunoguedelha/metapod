@@ -23,6 +23,7 @@
 #include "common.hh"
 #include <metapod/algos/crba.hh>
 #include <metapod/algos/hcrba.hh>
+#include <metapod/tools/qcalc.hh>
 
 using namespace metapod;
 
@@ -31,6 +32,10 @@ typedef double LocalFloatType;
 BOOST_AUTO_TEST_CASE (test_hcrba)
 {
   typedef CURRENT_MODEL_ROBOT<LocalFloatType> CURRENT_MODEL_ROBOT_LFT;
+
+  typedef typename CURRENT_MODEL_ROBOT_LFT::MatrixNBDOFf MatrixNBDOFf;
+  qcalc< CURRENT_MODEL_ROBOT_LFT >::run(); // Apply the permutation matrix Q
+
   // set configuration vector q to reference value.
   CURRENT_MODEL_ROBOT_LFT::confVector q;
   std::ifstream qconf(TEST_DIRECTORY "/q.conf");
@@ -43,27 +48,31 @@ BOOST_AUTO_TEST_CASE (test_hcrba)
   hcrba< CURRENT_MODEL_ROBOT_LFT, true >::run(robot, q); // Update geometry and run the Hybrid CRBA
   const char result_file[] = "hcrba.log";
   std::ofstream log(result_file, std::ofstream::out);
-  Eigen::Matrix< LocalFloatType, CURRENT_MODEL_ROBOT_LFT::NBDOF, CURRENT_MODEL_ROBOT_LFT::NBDOF > nufdH= robot.H;
+  MatrixNBDOFf HfdSparsed = robot.H; // H with FD sparsity
 
-  log << "generalized_mass_matrix\n" << robot.H << std::endl;
+  log << "generalized_mass_matrix\n" << HfdSparsed << std::endl;
   log.close();
 
   // Apply the CRBA to the metapod multibody and print the result in a log file
   crba< CURRENT_MODEL_ROBOT_LFT, true >::run(robot, q); // Update geometry and run the CRBA
-  Eigen::Matrix< LocalFloatType, CURRENT_MODEL_ROBOT_LFT::NBDOF, CURRENT_MODEL_ROBOT_LFT::NBDOF > fullH= robot.H;
-  
-  // Compare results with reference file
-  //compareLogs("hcrba.log", "crba.ref", 1e-3);
-  
-  // compare non zero terms in nufdH with respective terms fullH
-  Eigen::Matrix< LocalFloatType, CURRENT_MODEL_ROBOT_LFT::NBDOF, CURRENT_MODEL_ROBOT_LFT::NBDOF > diffH = fullH-nufdH;
-  Eigen::Array< LocalFloatType, CURRENT_MODEL_ROBOT_LFT::NBDOF, CURRENT_MODEL_ROBOT_LFT::NBDOF > prodH;
-  for(int i=0; i<CURRENT_MODEL_ROBOT_LFT::NBDOF; i++)
-  {
-    for(int j=0; j<CURRENT_MODEL_ROBOT_LFT::NBDOF; j++)
-    {
-      prodH(i,j) = nufdH(i,j) * diffH(i,j);
-    }
-  }
-  assert((prodH == 0).all());
+  MatrixNBDOFf refHreordSparsed = CURRENT_MODEL_ROBOT_LFT::Q * robot.H * CURRENT_MODEL_ROBOT_LFT::Qt; // reordered fullH
+  refHreordSparsed.template bottomRightCorner<CURRENT_MODEL_ROBOT_LFT::NBDOF-CURRENT_MODEL_ROBOT_LFT::nbFdDOF,
+                                              CURRENT_MODEL_ROBOT_LFT::NBDOF-CURRENT_MODEL_ROBOT_LFT::nbFdDOF>().setZero();
+  refHreordSparsed.template bottomLeftCorner<CURRENT_MODEL_ROBOT_LFT::NBDOF-CURRENT_MODEL_ROBOT_LFT::nbFdDOF,
+                                             CURRENT_MODEL_ROBOT_LFT::nbFdDOF>().setZero();
+  refHreordSparsed.template topRightCorner<CURRENT_MODEL_ROBOT_LFT::nbFdDOF,
+                                           CURRENT_MODEL_ROBOT_LFT::NBDOF-CURRENT_MODEL_ROBOT_LFT::nbFdDOF>().setZero();
+  // set H22 to zero, square matrix of size "NBDOF-nbFdDOF x NBDOF-nbFdDOF"
+
+  std::ofstream logRefReord("hcrbaRefHreordSparsed.log", std::ofstream::out);
+  logRefReord << "generalized_mass_matrix\n" << refHreordSparsed << std::endl;
+  logRefReord.close();
+
+  MatrixNBDOFf refHfdSparsed = CURRENT_MODEL_ROBOT_LFT::Qt * refHreordSparsed * CURRENT_MODEL_ROBOT_LFT::Q;
+
+  std::ofstream logRef("hcrba.ref", std::ofstream::out);
+  logRef << "generalized_mass_matrix\n" << refHfdSparsed << std::endl;
+  logRef.close();
+
+  compareLogs("hcrba.log", "hcrba.ref", 1e-3);
 }
