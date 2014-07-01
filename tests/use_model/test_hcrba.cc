@@ -56,11 +56,11 @@ BOOST_AUTO_TEST_CASE (test_hcrba)
   // Apply the CRBA to the metapod multibody and print the result in a log file
   crba< CURRENT_MODEL_ROBOT_LFT, true >::run(robot, q); // Update geometry and run the CRBA
   MatrixNBDOFf refHreordSparsed = CURRENT_MODEL_ROBOT_LFT::Q * robot.H * CURRENT_MODEL_ROBOT_LFT::Qt; // reordered fullH
-  refHreordSparsed.template bottomRightCorner<CURRENT_MODEL_ROBOT_LFT::NBDOF-CURRENT_MODEL_ROBOT_LFT::nbFdDOF,
+  refHreordSparsed.bottomRightCorner<CURRENT_MODEL_ROBOT_LFT::NBDOF-CURRENT_MODEL_ROBOT_LFT::nbFdDOF,
                                               CURRENT_MODEL_ROBOT_LFT::NBDOF-CURRENT_MODEL_ROBOT_LFT::nbFdDOF>().setZero();
-  refHreordSparsed.template bottomLeftCorner<CURRENT_MODEL_ROBOT_LFT::NBDOF-CURRENT_MODEL_ROBOT_LFT::nbFdDOF,
+  refHreordSparsed.bottomLeftCorner<CURRENT_MODEL_ROBOT_LFT::NBDOF-CURRENT_MODEL_ROBOT_LFT::nbFdDOF,
                                              CURRENT_MODEL_ROBOT_LFT::nbFdDOF>().setZero();
-  refHreordSparsed.template topRightCorner<CURRENT_MODEL_ROBOT_LFT::nbFdDOF,
+  refHreordSparsed.topRightCorner<CURRENT_MODEL_ROBOT_LFT::nbFdDOF,
                                            CURRENT_MODEL_ROBOT_LFT::NBDOF-CURRENT_MODEL_ROBOT_LFT::nbFdDOF>().setZero();
   // set H22 to zero, square matrix of size "NBDOF-nbFdDOF x NBDOF-nbFdDOF"
 
@@ -74,5 +74,5 @@ BOOST_AUTO_TEST_CASE (test_hcrba)
   logRef << "generalized_mass_matrix\n" << refHfdSparsed << std::endl;
   logRef.close();
 
-  compareLogs("hcrba.log", "hcrba.ref", 1e-3);
+  compareLogs("hcrba.log", "hcrba.ref", 1e-6);
 }
