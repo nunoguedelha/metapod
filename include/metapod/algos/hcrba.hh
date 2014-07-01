@@ -102,44 +102,31 @@ namespace internal {
     static void run(Robot&) {}
   };
 
-  // helper function: if node is in FD, perform all backward computation of Hij values.
-  // "i" is the deepest FD node in the nu(fd) subtree.
-  // "j" is the root FD node in the nu(fd) subtree.
-  template < template <typename AnyRobot, int any_node_id, int any_prev_node_id> class BwdtVisitor, 
-	     typename Robot, typename StartNode, int start_node_id, bool jointFwdDyn > struct backwardHijAcrossNuOfFd {};
-  template < template <typename AnyRobot, int any_node_id, int any_prev_node_id> class BwdtVisitor, 
-	     typename Robot, typename StartNode, int start_node_id >
-  struct backwardHijAcrossNuOfFd<BwdtVisitor, Robot, StartNode, start_node_id, true>
+  // helper function: set Hii if node i is FD
+  template < typename Robot, typename StartNode, bool jointFwdDyn=StartNode::jointFwdDyn > struct setHiiFromFnS {};
+  template < typename Robot, typename StartNode >
+  struct setHiiFromFnS<Robot, StartNode, true>
   {
-    static void run(Robot& robot)
+    static void run(Robot& robot, StartNode& node)
     {
-      // In below processing, joint_F stands for jFi. joint_F is handled like a buffer,
-      // every new value overwrites the previous one (it's a temp parameter).
-      StartNode& node = boost::fusion::at_c<start_node_id>(robot.nodes);
-      node.joint_F = node.body.Iic * node.joint.S;                                                                  // F = Iic * S
+      // Hii = SiT * F
       robot.H.template block<StartNode::Joint::NBDOF, StartNode::Joint::NBDOF>(StartNode::q_idx, StartNode::q_idx)
-	= node.joint.S.transpose() * node.joint_F;                                                                  // Hii = SiT * F
-      
-      // j=i && j=lambda(j) <=> backward_traversal_prev with "start_node_id" param
-      // while lambda(j) belongTo nuFD <=> backward_traversal_prev with "end_node_id" = root node of nu(FD)
-      const int end_node_id = rootNode_Of_NuFD<Robot, StartNode>::parent_id;
-      metapod::backward_traversal_prev< BwdtVisitor, Robot, start_node_id, end_node_id >::run(robot);
+	= node.joint.S.transpose() * node.joint_F;
     }
   };
-  template < template <typename AnyRobot, int any_node_id, int any_prev_node_id> class BwdtVisitor, 
-	     typename Robot, typename StartNode, int start_node_id >
-  struct backwardHijAcrossNuOfFd<BwdtVisitor, Robot, StartNode, start_node_id, false>
+  template < typename Robot, typename StartNode >
+  struct setHiiFromFnS<Robot, StartNode, false>
   {
-    static void run(Robot&) {}
+    static void run(Robot& robot, StartNode& node) {}
   };
 
-  template < typename Robot, typename NI, typename NJ, int nj_id, bool jointFwdDyn > struct setHijHjiFromFnS {};
-  template < typename Robot, typename NI, typename NJ, int nj_id >
-  struct setHijHjiFromFnS<Robot, NI, NJ, nj_id, true >
+  template < typename Robot, typename NI, typename NJ, bool jointFwdDyn = NI::jointFwdDyn || NJ::jointFwdDyn > struct setHijHjiFromFnS {};
+  template < typename Robot, typename NI, typename NJ >
+  struct setHijHjiFromFnS<Robot, NI, NJ, true >
   {
     static void run(Robot& robot, NI& ni)
     {
-      NJ& nj = boost::fusion::at_c<nj_id>(robot.nodes);
+      NJ& nj = boost::fusion::at_c<NJ::id>(robot.nodes);
 
       robot.H.template
 	block< NI::Joint::NBDOF, NJ::Joint::NBDOF >
@@ -154,10 +141,53 @@ namespace internal {
     }
   };
 
-  template < typename Robot, typename NI, typename NJ, int nj_id >
-  struct setHijHjiFromFnS<Robot, NI, NJ, nj_id, false >
+  template < typename Robot, typename NI, typename NJ >
+  struct setHijHjiFromFnS<Robot, NI, NJ, false >
   {
     static void run(Robot&, NI&) {}
+  };
+
+  template < typename Robot, typename StartNode, bool jointFwdDyn=StartNode::jointFwdDyn > struct startNodeId_2_endNodeId {};
+  template < typename Robot, typename StartNode >
+  struct startNodeId_2_endNodeId<Robot, StartNode, true>
+  {
+    static const int value = NO_PARENT;
+  };
+  template < typename Robot, typename StartNode >
+  struct startNodeId_2_endNodeId<Robot, StartNode, false>
+  {
+    static const int value = rootNode_Of_NuFD<Robot, StartNode>::parent_id;
+  };
+
+  // helper function: if node is in FD, perform all backward computation of Hij values.
+  // "i" is the deepest FD node in the nu(fd) subtree.
+  // "j" is the root FD node in the nu(fd) subtree.
+  template < template <typename AnyRobot, int any_node_id, int any_prev_node_id> class BwdtVisitor, 
+	     typename Robot, typename StartNode, bool jointNuOfFwdDyn=StartNode::jointNuOfFwdDyn > struct backwardHijAcrossNuOfFd {};
+  template < template <typename AnyRobot, int any_node_id, int any_prev_node_id> class BwdtVisitor, 
+	     typename Robot, typename StartNode >
+  struct backwardHijAcrossNuOfFd<BwdtVisitor, Robot, StartNode, true>
+  {
+    static void run(Robot& robot)
+    {
+      // In below processing, joint_F stands for jFi. joint_F is handled like a buffer,
+      // every new value overwrites the previous one (it's a temp parameter).
+      StartNode& node = boost::fusion::at_c<StartNode::id>(robot.nodes);
+      node.joint_F = node.body.Iic * node.joint.S;         // F = Iic * S
+      // set Hii if node i is FD
+      setHiiFromFnS<Robot, StartNode>::run(robot, node);   // Hii = SiT * F
+      
+      // j=i && j=lambda(j) <=> backward_traversal_prev with StartNode::id param
+      // while lambda(j) belongTo nuFD <=> backward_traversal_prev with "end_node_id" = root node of nu(FD)
+      const int end_node_id = startNodeId_2_endNodeId<Robot, StartNode>::value;
+      metapod::backward_traversal_prev< BwdtVisitor, Robot, StartNode::id, end_node_id >::run(robot);
+    }
+  };
+  template < template <typename AnyRobot, int any_node_id, int any_prev_node_id> class BwdtVisitor, 
+	     typename Robot, typename StartNode >
+  struct backwardHijAcrossNuOfFd<BwdtVisitor, Robot, StartNode, false>
+  {
+    static void run(Robot&) {}
   };
 
 } // end of namespace metapod::internal
@@ -186,7 +216,7 @@ template< typename Robot > struct hcrba<Robot, false>
 	// for below processing, joint_F stands for jFi. joint_F is handled like a buffer,
 	// every new value overwrites the previous one (it's a temp parameter).
         ni.joint_F = prev_nj.sXp.mulMatrixTransposeBy(ni.joint_F); // F = lbd(j)Xj * F
-	internal::setHijHjiFromFnS<AnyyRobot, NI, NJ, nj_id, NJ::jointFwdDyn>::run(robot, ni);
+	internal::setHijHjiFromFnS<AnyyRobot, NI, NJ>::run(robot, ni);
       }
 
       static void finish(AnyyRobot&) {}
@@ -201,7 +231,7 @@ template< typename Robot > struct hcrba<Robot, false>
     static void finish(AnyRobot& robot)
     {
       internal::hcrba_update_parent_inertia<AnyRobot, Node::parent_id, node_id, NUFD_NOT_CHECKED>::run(robot);
-      internal::backwardHijAcrossNuOfFd<BwdtVisitor, AnyRobot, Node, node_id, Node::jointFwdDyn>::run(robot);
+      internal::backwardHijAcrossNuOfFd<BwdtVisitor, AnyRobot, Node>::run(robot);
     }
   };
 

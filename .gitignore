@@ -1,2 +1,3 @@
 /_build*
+/buildBenchmark
 /CMakeLists.txt.user
