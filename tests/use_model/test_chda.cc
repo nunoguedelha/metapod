@@ -88,7 +88,6 @@ BOOST_AUTO_TEST_CASE (test_chda)
   logDdq.close();
 
   // Compare results with reference files
-  compareLogs(H_result_file, TEST_DIRECTORY "/chdaH.ref", 1e-3);
   compareLogs(torques_result_file, "chdaTorques.ref", 1e-3);
   compareLogs(ddq_result_file, TEST_DIRECTORY "/chdaDdq.ref", 1e-3);
   
