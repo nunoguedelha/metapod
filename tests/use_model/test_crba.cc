@@ -32,7 +32,7 @@ BOOST_AUTO_TEST_CASE (test_crba)
   typedef CURRENT_MODEL_ROBOT<LocalFloatType> CURRENT_MODEL_ROBOT_LFT;
   // set configuration vector q to reference value.
   CURRENT_MODEL_ROBOT_LFT::confVector q;
-  std::ifstream qconf(TEST_DIRECTORY "/q_init.conf");
+  std::ifstream qconf(TEST_DIRECTORY "/q.conf");
   initConf<CURRENT_MODEL_ROBOT_LFT>::run(qconf, q);
   qconf.close();
 
@@ -47,5 +47,5 @@ BOOST_AUTO_TEST_CASE (test_crba)
   log.close();
 
   // Compare results with reference file
-  compareLogs(result_file, TEST_DIRECTORY "/crba.ref", 1e-3);
+  compareLogs(result_file, TEST_DIRECTORY "/crba.ref", 1e-6);
 }

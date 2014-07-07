@@ -278,6 +278,7 @@ namespace metapod
       class ltI<FloatType> 
       rotTSymmetricMatrix(const class ltI<FloatType> &A) const
       {
+        /*
 	class ltI<FloatType> r;
 
 	FloatType alpha_y = 2*m_c*m_s*A.m_ltI(3) +
@@ -293,7 +294,10 @@ namespace metapod
 	r.m_ltI(4) = m_c*A.m_ltI(4) - m_s * A.m_ltI(1);
 	r.m_ltI(5) = A.m_ltI(5) - alpha_y;
 	return r;
+	*/
+	RotationMatrixTpl<FloatType> Egen(this->toMatrix());
 
+        return Egen.rotTSymmetricMatrix(A);
       }      
 
 
