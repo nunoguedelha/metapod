@@ -47,5 +47,5 @@ BOOST_AUTO_TEST_CASE (test_crba)
   log.close();
 
   // Compare results with reference file
-  compareLogs(result_file, TEST_DIRECTORY "/crba.ref", 1e-6);
+  compareLogs(result_file, TEST_DIRECTORY "/crba.ref", 1e-3);
 }

@@ -97,7 +97,6 @@ template< typename Robot > struct crba<Robot, false>
     {
       NI& ni = boost::fusion::at_c<node_id>(robot.nodes);
       ni.body.Iic = robot.inertias[node_id];
-      //std::cout << ni.body.Iic << std::endl;
     }
 
     static void finish(AnyRobot& robot)
@@ -105,7 +104,6 @@ template< typename Robot > struct crba<Robot, false>
       Node& node = boost::fusion::at_c<node_id>(robot.nodes);
       internal::crba_update_parent_inertia<AnyRobot, Node::parent_id, node_id>::run(robot);
       node.joint_F = node.body.Iic * node.joint.S;
-      //std::cout << node.joint_F << "   " << node.body.Iic << "   " << node.joint.S.S() << std::endl;
 
       robot.H.template block<Node::Joint::NBDOF, Node::Joint::NBDOF>(
               Node::q_idx, Node::q_idx)
