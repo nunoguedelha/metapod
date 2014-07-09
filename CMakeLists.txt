@@ -205,6 +205,9 @@ OPTION(BUILD_MULTI_MODEL_BENCHMARK
 OPTION(BUILD_SINGLE_MODEL_BENCHMARKS
     "Generate and build the single-model benchmarks" TRUE)
 
+OPTION(MODEL_JOINT_FWD_DYN_FROM_URDF "Set the joint fwd_dyn type from URDF model" OFF)
+OPTION(MODEL_JOINT_FWD_DYN_LOCAL "Set the joint fwd_dyn type from this hard value" OFF)
+
 
 IF(WITH_SIMPLE_ARM)
   ADD_SAMPLEURDFMODEL("simple_arm")

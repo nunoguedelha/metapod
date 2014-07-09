@@ -32,6 +32,13 @@
 #endif
 #include <metapod/robotbuilder/robotbuilder.hh>
 
+#if JOINT_FWD_DYN == all_on
+  #define JOINT_FWD_DYN_FROM_CMAKE true
+#elif JOINT_FWD_DYN == all_off
+  #define JOINT_FWD_DYN_FROM_CMAKE false
+#elif JOINT_FWD_DYN == from_urdf
+  #define JOINT_FWD_DYN_FROM_CMAKE (jnt->dynamics->fwdDyn)
+#endif
 
 typedef metapod::RobotBuilder::Status Status;
 const Status STATUS_SUCCESS = metapod::RobotBuilder::STATUS_SUCCESS;
@@ -118,6 +125,8 @@ Status addSubTree(
     const std::map<std::string, int>& joint_dof_index,
     bool has_parent)
 {
+  std::cout << JOINT_FWD_DYN;
+
   const std::string tab("\t");
 
   std::vector<boost::shared_ptr<urdf::Link> > children = root->child_links;
@@ -198,6 +207,7 @@ Status addSubTree(
       center_of_mass,
       rotational_inertia,
       toEigen(jnt->axis),
+      JOINT_FWD_DYN_FROM_CMAKE,
       dof_index);
   if (status == STATUS_FAILURE)
     return STATUS_FAILURE;
