@@ -33,102 +33,150 @@
 # include "metapod/algos/rnea.hh"
 # include "metapod/algos/crba.hh"
 
-namespace metapod {
-namespace internal {
 
 /// Templated Hybrid Dynamics Algorithm.
 /// Takes the multibody tree type as template parameter,
 /// and recursively proceeds on the Nodes.
 
+#ifndef GRAVITY_CST
+#define GRAVITY_CST 981
+#endif
+
+namespace metapod {
+namespace internal {
+
+  // General use case [0 < nbFdDOF < NBDOF]: we perform the regular Hybrid Dynamics algorithm.
+
+  template< typename Robot, bool jcalc, int gravity, int NBDOF, int nbFdDOF > struct chda_internal
+  {
+    static void run(Robot& robot,
+                    const typename Robot::confVector& q,
+                    const typename Robot::confVector& dq,
+                    typename Robot::confVector& ddq,
+                    typename Robot::confVector& torques
+                    )
+    {
+      /* below matrices and vectors which reordered such that fwd dynamic joints
+       come first, will get the postfix rff (reordered fwd dynamics first).*/
+
+      typedef typename Robot::confVector confVector;
+      typedef typename Robot::MatrixNBDOFf MatrixNBDOFf;
+
+      typedef Eigen::PermutationMatrix<Robot::nbFdDOF, Robot::nbFdDOF, typename Robot::RobotFloatType> PermutationMatrixDof1; // first nbFdDOF lines or columns
+      typedef Eigen::PermutationMatrix<Robot::NBDOF-Robot::nbFdDOF, Robot::NBDOF-Robot::nbFdDOF, typename Robot::RobotFloatType> PermutationMatrixDof2; // last NBDOF-nbFdDOF lines or columns
+
+      typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, 1> confVectorDof1;
+      typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, 1> confVectorDof2;
+      typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, Robot::nbFdDOF> MatrixDof11;
+      typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, Robot::NBDOF-Robot::nbFdDOF> MatrixDof12;
+      typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, Robot::nbFdDOF> MatrixDof21;
 
 
-// helper function: 
+      // we shall use Q and Q sub-matrices Q1, Q2
+      qcalc< Robot >::run(); // Apply the permutation matrix Q
+
+      // 1 - compute Cprime = ID(q,q',Qt[0 q2"]) using RNA :
+      confVector ddq_rff_1_zeroed = Robot::Q * ddq; // First, reorder ddq
+
+      ddq_rff_1_zeroed.template head<Robot::nbFdDOF>().template setZero(); // Then, set unknown accelerations to 0
+
+      confVector ddq_1_zeroed = Robot::Qt * ddq_rff_1_zeroed; // roll back to original index order
+
+      rnea<Robot, jcalc, gravity>::run(robot, q, dq, ddq_1_zeroed); // compute torques => Cprime
+
+      confVector CprimeTorques; getTorques(robot, CprimeTorques); // get computed torques
+
+      // 2 - compute H11 from Hprime = Q.H.Qt
+      crba<Robot, false>::run(robot, q); // First, compute whole H
+      MatrixNBDOFf Hrff = Robot::Q * robot.H * Robot::Qt; // H reordered
+      MatrixDof11 H11 = Hrff.template topLeftCorner<Robot::nbFdDOF, Robot::nbFdDOF>(); // H11, square matrix of size "nbFdDOF x nbFdDOF"
+
+      // 3 - solve H11*q1" = tau1 - C1prime
+      confVectorDof1 tau1 = confVector(Robot::Q * torques).template head<Robot::nbFdDOF>(); // compute tau1: all known torques (nbFdDOF lines)
+      confVectorDof1 C1prime = confVector(Robot::Q * CprimeTorques).template head<Robot::nbFdDOF>(); // compute C1prime (nbFdDOF lines)
+      // solve system
+      Eigen::LLT<MatrixDof11> lltOfH11(H11);
+      confVectorDof1 ddq1 = lltOfH11.solve(tau1 - C1prime);
+
+      // 4 - compute tau = Cprime + Qt[H11.q1" H21.q1"]
+      //     tau = [tau1, tau2]t
+      //     tau2 = C2prime + H21.q1"
+      confVectorDof2 C2prime = confVector(Robot::Q * CprimeTorques).template tail<Robot::NBDOF-Robot::nbFdDOF>(); // C2prime (NBDOF-nbFdDOF lines)
+      MatrixDof21 H21 = Hrff.template bottomLeftCorner<Robot::NBDOF-Robot::nbFdDOF, Robot::nbFdDOF>(); // H21, square matrix of size "NBDOF-nbFdDOF x nbFdDOF"
+      confVectorDof2 tau2 = C2prime + H21 * ddq1;
+
+      // 5 - complete output vectors ddq and torques
+      confVectorDof2 ddq2 = confVector(Robot::Q * ddq).template tail<Robot::NBDOF-Robot::nbFdDOF>();
+
+      confVector ddqRff;
+      ddqRff << ddq1,
+                ddq2;
+      ddq = Robot::Qt * ddqRff;
+
+      confVector torquesRff;
+      torquesRff << tau1,
+                    tau2;
+      torques = Robot::Qt * torquesRff;
+    }
+  };
+
+  // Specialization for use case [nbFdDOF = 0]: we perform a full RNEA.
+  template< typename Robot, bool jcalc, int gravity, int NBDOF > struct chda_internal<Robot, jcalc, gravity, NBDOF, 0>
+  {
+    static void run(Robot& robot,
+                    const typename Robot::confVector& q,
+                    const typename Robot::confVector& dq,
+                    typename Robot::confVector& ddq,
+                    typename Robot::confVector& torques
+                    )
+    {
+      rnea<Robot, jcalc, gravity>::run(robot, q, dq, ddq); // compute torques for model robot
+      getTorques(robot, torques);                          // get torques from processed model
+    }
+  };
+
+
+  // Specialization for use case [nbFdDOF = NBDOF]: we perform a full Forward Dynamics.
+  template< typename Robot, bool jcalc, int gravity, int NBDOF > struct chda_internal<Robot, jcalc, gravity, NBDOF, NBDOF>
+  {
+    static void run(Robot& robot,
+                    const typename Robot::confVector& q,
+                    const typename Robot::confVector& dq,
+                    typename Robot::confVector& ddq,
+                    typename Robot::confVector& torques
+                    )
+    {
+      // we follow the steps of the Hybrid Dynamics algorithm,
+      // while ddq1 = ddq, and ddq2 = null vector.
+
+      // 1 - compute C = ID(q,dq,0) using RNA, (all ddq variables are unknown) :
+      rnea<Robot, jcalc, gravity>::run(robot, q, dq, Robot::confVector::Zero());
+      typename Robot::confVector C; getTorques(robot, C);
+
+      // 2 -compute inertia H (H11 = H, H21 = H12 = H22 = null matrixes)
+      crba<Robot, false>::run(robot, q);
+
+      // 3 - solve H*ddq = torques - C
+      Eigen::LLT<typename Robot::MatrixNBDOFf> lltOfH(robot.H);
+      ddq = lltOfH.solve(torques - C);
+    }
+  };
 
 } // end of namespace metapod::internal
 
 
 // frontend
-template< typename Robot > struct chda
+
+template< typename Robot, bool jcalc = true, int gravity =  GRAVITY_CST > struct chda
 {
-  static void run(Robot& robot, 
-		  const typename Robot::confVector& q, 
-		  const typename Robot::confVector& dq, 
-		  typename Robot::confVector& ddq, 
-		  typename Robot::confVector& torques
-		  )
+  static void run(Robot& robot,
+                  const typename Robot::confVector& q,
+                  const typename Robot::confVector& dq,
+                  typename Robot::confVector& ddq,
+                  typename Robot::confVector& torques
+                  )
   {
-    /* below matrices and vectors which reordered such that fwd dynamic joints 
-       come first, will get the postfix rff (reordered fwd dynamics first).*/
-    
-    typedef typename Robot::confVector confVector;
-    typedef typename Robot::MatrixNBDOFf MatrixNBDOFf;
-    
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, Robot::NBDOF> MatrixDof10; // first nbFdDOF lines
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF, Robot::nbFdDOF> MatrixDof01; // first nbFdDOF columns
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, Robot::NBDOF> MatrixDof20; // last NBDOF-nbFdDOF lines
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF, Robot::NBDOF-Robot::nbFdDOF> MatrixDof02; // last NBDOF-nbFdDOF columns
-    
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, 1> confVectorDof1;
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, 1> confVectorDof2;
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, Robot::nbFdDOF> MatrixDof11;
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, Robot::NBDOF-Robot::nbFdDOF> MatrixDof12;
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, Robot::nbFdDOF> MatrixDof21;
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, Robot::NBDOF-Robot::nbFdDOF> MatrixDof22;
-    
-    // we shall use Q and Q sub-matrices Q1left, Q1right, Q2left, Q2right
-    qcalc< Robot >::run(); // Apply the permutation matrix Q
-    MatrixDof10 Q1left = Robot::Q.template topRows<Robot::nbFdDOF>();
-    MatrixDof01 Q1right = Robot::Q.template leftCols<Robot::nbFdDOF>();
-    MatrixDof20 Q2left = Robot::Q.template bottomRows<Robot::NBDOF-Robot::nbFdDOF>();
-    MatrixDof02 Q2right = Robot::Q.template rightCols<Robot::NBDOF-Robot::nbFdDOF>();
-    
-    // 1 - compute Cprime = ID(q,q',Qt[0 q2"]) using RNA :
-    confVector ddq_rff_1_zeroed = Robot::Q * ddq; // First, reorder ddq
-    
-    ddq_rff_1_zeroed.template head<Robot::nbFdDOF>().template setZero(); // Then, set unknown accelerations to 0
-    
-    confVector ddq_1_zeroed = Robot::Qt * ddq_rff_1_zeroed; // roll back to original index order
-    
-    rnea< Robot, true >::run(robot, q, dq, ddq_1_zeroed); // compute torques => Cprime
-    
-    confVector CprimeTorques; getTorques(robot, CprimeTorques); // get computed torques
-    robot.Cprime = CprimeTorques; // set those torques to robot Cprime parameter
-    
-    // 2 - compute H11 from Hprime = Q.H.Qt
-    crba<Robot, true>::run(robot, q); // First, compute whole H
-    MatrixNBDOFf Hrff = Robot::Q * robot.H * Robot::Qt; // H reordered
-    MatrixDof11 H11 = Hrff.template topLeftCorner<Robot::nbFdDOF, Robot::nbFdDOF>(); // H11, square matrix of size "nbFdDOF x nbFdDOF"
-    
-    // 3 - solve H11*q1" = tau1 - C1prime
-    confVectorDof1 tau1 = Q1left * torques; // compute tau1: all known torques (nbFdDOF lines)
-    confVectorDof1 C1prime = Q1left * CprimeTorques; // compute C1prime (nbFdDOF lines)
-    // solve system
-    Eigen::LLT<MatrixDof11> lltOfH11(H11);
-    confVectorDof1 ddq1 = lltOfH11.solve(tau1 - C1prime);
-    
-    // 4 - compute tau = Cprime + Qt[H11.q1" H21.q1"]
-    //     tau = [tau1, tau2]t
-    //     tau2 = C2prime + H21.q1"
-    confVectorDof2 C2prime = Q2left * CprimeTorques; // C2prime (NBDOF-nbFdDOF lines)
-    MatrixDof21 H21 = Hrff.template bottomLeftCorner<Robot::NBDOF-Robot::nbFdDOF, Robot::nbFdDOF>(); // H21, square matrix of size "NBDOF-nbFdDOF x nbFdDOF"
-    confVectorDof2 tau2 = C2prime + H21 * ddq1;
-    
-    // 5 - complete output vectors ddq and torques
-    confVectorDof2 ddq2 = Q2left * ddq;
-    confVector ddqRff;
-    ddqRff << ddq1,
-              ddq2;
-    ddq = Robot::Qt * ddqRff;
-    
-    confVector torquesRff;
-    torquesRff << tau1,
-                  tau2;
-    torques = Robot::Qt * torquesRff;
-    /*
-    // Here, computation of torques does not use matrix H.
-    rnea< Robot, true >::run(robot, q, dq, ddq);
-    getTorques(robot, torques); // get final computed torques
-    */
+    internal::chda_internal<Robot, jcalc, gravity, Robot::NBDOF, Robot::nbFdDOF>::run(robot, q, dq, ddq, torques);
   }
 };
 
