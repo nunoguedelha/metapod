@@ -41,7 +41,7 @@ template <typename Robot, int node_id>
 struct InitConfHybridParamsVisitor
 {
   typedef typename boost::fusion::result_of::value_at_c<typename Robot::NodeVector, node_id>::type Node;
-  const int NB_DOF = Node::Joint::NBDOF;
+  static const int NB_DOF = Node::Joint::NBDOF;
 
   static void discover(std::ifstream &log, typename Robot::confVector &v, const bool &isTorque)
   {

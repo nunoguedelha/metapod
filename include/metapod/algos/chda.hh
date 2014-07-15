@@ -33,16 +33,71 @@
 # include "metapod/algos/rnea.hh"
 # include "metapod/algos/crba.hh"
 
-namespace metapod {
-namespace internal {
 
 /// Templated Hybrid Dynamics Algorithm.
 /// Takes the multibody tree type as template parameter,
 /// and recursively proceeds on the Nodes.
 
 
+namespace metapod {
+namespace internal {
 
-// helper function: 
+// helper function: return H11, square matrix of size "nbFdDOF x nbFdDOF", or an empty matrix (null dimension)
+// if nbFdDOF = 0.
+  template< typename Robot, typename MatrixNBDOFf, typename MatrixDof11, int nbFdDOF >
+  struct extractSubMatH11
+  {
+    static void run(MatrixNBDOFf &Hrff, MatrixDof11 &H11)
+    {
+       H11 = Hrff.template topLeftCorner<Robot::nbFdDOF, Robot::nbFdDOF>(); // H11, square matrix of size "nbFdDOF x nbFdDOF"
+    }
+  };
+
+  template< typename Robot, typename MatrixNBDOFf, typename MatrixDof11 >
+  struct extractSubMatH11<Robot, MatrixNBDOFf, MatrixDof11, 0>
+  {
+    static void run(MatrixNBDOFf &, MatrixDof11 &) {} // call to topLeftCorner method with null size would not compile.
+                                                      // H11 will not be used anyway in this case.
+  };
+
+  // helper function: return tau2, vector of size "NBDOF-nbFdDOF x 1", or an empty matrix (null dimension)
+  // if nbFdDOF = NBDOF.
+  template< typename Robot, typename MatrixNBDOFf, typename MatrixDof21,
+            typename confVector, typename confVectorDof1, typename confVectorDof2,
+            int nbIdDOF >
+  struct extractSubVectTau2
+  {
+    static void run(MatrixNBDOFf &Hrff, confVector &CprimeTorques, confVectorDof1 &ddq1, confVectorDof2 &tau2)
+    {
+      confVectorDof2 C2prime = confVector(Robot::Q * CprimeTorques).template tail<Robot::NBDOF-Robot::nbFdDOF>(); // C2prime (NBDOF-nbFdDOF lines)
+      MatrixDof21 H21 = Hrff.template bottomLeftCorner<Robot::NBDOF-Robot::nbFdDOF, Robot::nbFdDOF>(); // H21, square matrix of size "NBDOF-nbFdDOF x nbFdDOF"
+      tau2 = C2prime + H21 * ddq1;
+    }
+  };
+  template< typename Robot, typename MatrixNBDOFf, typename MatrixDof21,
+            typename confVector, typename confVectorDof1, typename confVectorDof2>
+  struct extractSubVectTau2<Robot, MatrixNBDOFf, MatrixDof21, confVector, confVectorDof1, confVectorDof2, 0>
+  {
+    static void run(MatrixNBDOFf &, confVector &, confVectorDof1 &, confVectorDof2 &) {}
+  };
+
+  // helper function: return ddq2, vector of size "NBDOF-nbFdDOF x 1", or an empty matrix (null dimension)
+  // if nbFdDOF = NBDOF.
+    template< typename Robot, typename confVector, typename confVectorDof2, int nbIdDOF >
+    struct extractSubVectDdq2
+    {
+      static void run(confVector &ddq, confVectorDof2 &ddq2)
+      {
+         ddq2 = confVector(Robot::Q * ddq).template tail<Robot::NBDOF-Robot::nbFdDOF>();
+      }
+    };
+
+    template< typename Robot, typename confVector, typename confVectorDof2 >
+    struct extractSubVectDdq2<Robot, confVector, confVectorDof2, 0>
+    {
+      static void run(confVector &, confVectorDof2 &) {} // call to tail method with null size would not compile.
+                                                         // ddq2 will not be used anyway in this case.
+    };
 
 } // end of namespace metapod::internal
 
@@ -62,25 +117,23 @@ template< typename Robot > struct chda
     
     typedef typename Robot::confVector confVector;
     typedef typename Robot::MatrixNBDOFf MatrixNBDOFf;
-    
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, Robot::NBDOF> MatrixDof10; // first nbFdDOF lines
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF, Robot::nbFdDOF> MatrixDof01; // first nbFdDOF columns
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, Robot::NBDOF> MatrixDof20; // last NBDOF-nbFdDOF lines
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF, Robot::NBDOF-Robot::nbFdDOF> MatrixDof02; // last NBDOF-nbFdDOF columns
-    
+
+    typedef Eigen::PermutationMatrix<Robot::nbFdDOF, Robot::nbFdDOF, typename Robot::RobotFloatType> PermutationMatrixDof1; // first nbFdDOF lines or columns
+    typedef Eigen::PermutationMatrix<Robot::NBDOF-Robot::nbFdDOF, Robot::NBDOF-Robot::nbFdDOF, typename Robot::RobotFloatType> PermutationMatrixDof2; // last NBDOF-nbFdDOF lines or columns
+
     typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, 1> confVectorDof1;
     typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, 1> confVectorDof2;
     typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, Robot::nbFdDOF> MatrixDof11;
     typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, Robot::NBDOF-Robot::nbFdDOF> MatrixDof12;
     typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, Robot::nbFdDOF> MatrixDof21;
-    typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, Robot::NBDOF-Robot::nbFdDOF> MatrixDof22;
-    
-    // we shall use Q and Q sub-matrices Q1left, Q1right, Q2left, Q2right
+
+
+    // we shall use Q and Q sub-matrices Q1, Q2
     qcalc< Robot >::run(); // Apply the permutation matrix Q
-    MatrixDof10 Q1left = Robot::Q.template topRows<Robot::nbFdDOF>();
-    MatrixDof01 Q1right = Robot::Q.template leftCols<Robot::nbFdDOF>();
-    MatrixDof20 Q2left = Robot::Q.template bottomRows<Robot::NBDOF-Robot::nbFdDOF>();
-    MatrixDof02 Q2right = Robot::Q.template rightCols<Robot::NBDOF-Robot::nbFdDOF>();
+    //PermutationMatrixDof1 Q1right = PermutationMatrixDof1(Robot::fdNodesFirst.template topRows<Robot::nbFdDOF>());
+    //PermutationMatrixDof1 Q1left = Q1right.transpose();
+    //PermutationMatrixDof2 Q2right = PermutationMatrixDof2(Robot::fdNodesFirst.template bottomRows<Robot::NBDOF-Robot::nbFdDOF>());
+    //PermutationMatrixDof2 Q2left = Q2right.transpose();
     
     // 1 - compute Cprime = ID(q,q',Qt[0 q2"]) using RNA :
     confVector ddq_rff_1_zeroed = Robot::Q * ddq; // First, reorder ddq
@@ -92,16 +145,15 @@ template< typename Robot > struct chda
     rnea< Robot, true >::run(robot, q, dq, ddq_1_zeroed); // compute torques => Cprime
     
     confVector CprimeTorques; getTorques(robot, CprimeTorques); // get computed torques
-    robot.Cprime = CprimeTorques; // set those torques to robot Cprime parameter
     
     // 2 - compute H11 from Hprime = Q.H.Qt
     crba<Robot, true>::run(robot, q); // First, compute whole H
     MatrixNBDOFf Hrff = Robot::Q * robot.H * Robot::Qt; // H reordered
-    MatrixDof11 H11 = Hrff.template topLeftCorner<Robot::nbFdDOF, Robot::nbFdDOF>(); // H11, square matrix of size "nbFdDOF x nbFdDOF"
+    MatrixDof11 H11; internal::extractSubMatH11<Robot, MatrixNBDOFf, MatrixDof11, Robot::nbFdDOF>::run(Hrff, H11); // H11, square matrix of size "nbFdDOF x nbFdDOF"
     
     // 3 - solve H11*q1" = tau1 - C1prime
-    confVectorDof1 tau1 = Q1left * torques; // compute tau1: all known torques (nbFdDOF lines)
-    confVectorDof1 C1prime = Q1left * CprimeTorques; // compute C1prime (nbFdDOF lines)
+    confVectorDof1 tau1 = confVector(Robot::Q * torques).template head<Robot::nbFdDOF>(); // compute tau1: all known torques (nbFdDOF lines)
+    confVectorDof1 C1prime = confVector(Robot::Q * CprimeTorques).template head<Robot::nbFdDOF>(); // compute C1prime (nbFdDOF lines)
     // solve system
     Eigen::LLT<MatrixDof11> lltOfH11(H11);
     confVectorDof1 ddq1 = lltOfH11.solve(tau1 - C1prime);
@@ -109,12 +161,14 @@ template< typename Robot > struct chda
     // 4 - compute tau = Cprime + Qt[H11.q1" H21.q1"]
     //     tau = [tau1, tau2]t
     //     tau2 = C2prime + H21.q1"
-    confVectorDof2 C2prime = Q2left * CprimeTorques; // C2prime (NBDOF-nbFdDOF lines)
-    MatrixDof21 H21 = Hrff.template bottomLeftCorner<Robot::NBDOF-Robot::nbFdDOF, Robot::nbFdDOF>(); // H21, square matrix of size "NBDOF-nbFdDOF x nbFdDOF"
-    confVectorDof2 tau2 = C2prime + H21 * ddq1;
-    
+    confVectorDof2 tau2;
+    internal::extractSubVectTau2<Robot, MatrixNBDOFf, MatrixDof21, confVector, confVectorDof1, confVectorDof2, Robot::NBDOF-Robot::nbFdDOF>
+        ::run(Hrff, CprimeTorques, ddq1, tau2); // comuptes intermediate data: C2prime (NBDOF-nbFdDOF lines),
+                                                // H21 square matrix of size "NBDOF-nbFdDOF x nbFdDOF".
+
     // 5 - complete output vectors ddq and torques
-    confVectorDof2 ddq2 = Q2left * ddq;
+    confVectorDof2 ddq2;
+    internal::extractSubVectDdq2<Robot, confVector, confVectorDof2, Robot::NBDOF-Robot::nbFdDOF>::run(ddq, ddq2);
     confVector ddqRff;
     ddqRff << ddq1,
               ddq2;
