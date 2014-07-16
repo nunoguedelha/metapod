@@ -183,6 +183,12 @@ namespace metapod
             boost::bind<void>(crba<Robot, false>::run, _1, _2),
             std::string("crba (without jcalc)")));
         runners.push_back(Runner<Robot>(
+            boost::bind<void>(hcrba<Robot, true>::run, _1, _2),
+            std::string("hcrba")));
+        runners.push_back(Runner<Robot>(
+            boost::bind<void>(hcrba<Robot, false>::run, _1, _2),
+            std::string("hcrba (without jcalc)")));
+        runners.push_back(Runner<Robot>(
             boost::bind<void>(chda<Robot, true>::run, _1, _2, _3, _4, _5),
             std::string("chda")));
         runners.push_back(Runner<Robot>(

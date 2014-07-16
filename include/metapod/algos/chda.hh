@@ -32,6 +32,7 @@
 # include "metapod/tools/qcalc.hh"
 # include "metapod/algos/rnea.hh"
 # include "metapod/algos/crba.hh"
+# include "metapod/algos/hcrba.hh"
 
 
 /// Templated Hybrid Dynamics Algorithm.
@@ -87,7 +88,7 @@ namespace internal {
       confVector CprimeTorques; getTorques(robot, CprimeTorques); // get computed torques
 
       // 2 - compute H11 from Hprime = Q.H.Qt
-      crba<Robot, false>::run(robot, q); // First, compute whole H
+      hcrba<Robot, false>::run(robot, q); // First, compute whole H
       MatrixNBDOFf Hrff = Robot::Q * robot.H * Robot::Qt; // H reordered
       MatrixDof11 H11 = Hrff.template topLeftCorner<Robot::nbFdDOF, Robot::nbFdDOF>(); // H11, square matrix of size "nbFdDOF x nbFdDOF"
 
