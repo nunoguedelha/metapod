@@ -68,8 +68,8 @@ BOOST_AUTO_TEST_CASE (test_chda)
 
   
   // Apply the CHDA (Hybrid Dynamics) to the metapod multibody and print the result in a log file.
-
-  chda<Robot, false>::run(robot, q, dq, ddq, torques);
+  Timer* timer = make_timer(); timer->start(); timer->stop();
+  chda<Robot, false>::run(robot, q, dq, ddq, torques, timer, timer, timer, timer, timer);
   
   // Inertia H results
   const char H_result_file[] = "chdaH.log";
@@ -94,7 +94,12 @@ BOOST_AUTO_TEST_CASE (test_chda)
   
   //****** RANDOM VECTORS *************************************************************
   
-  Timer* timer = make_timer(); timer->start(); timer->stop();
+  Timer* timer1 = make_timer(); timer1->start(); timer1->stop();
+  Timer* timer2 = make_timer(); timer2->start(); timer2->stop();
+  Timer* timer3 = make_timer(); timer3->start(); timer3->stop();
+  Timer* timer4 = make_timer(); timer4->start(); timer4->stop();
+  Timer* timer5 = make_timer(); timer5->start(); timer5->stop();
+  timer->start(); timer->stop();
   int outer_loop_count;
   int inner_loop_count;
 
@@ -114,7 +119,7 @@ BOOST_AUTO_TEST_CASE (test_chda)
       timer->resume();
 
       // Apply the CHDA (Hybrid Dynamics) to the metapod multibody
-      chda<Robot, true>::run(robot, q, dq, ddq, torques);
+      chda<Robot, true>::run(robot, q, dq, ddq, torques, timer1, timer2, timer3, timer4, timer5);
 
       timer->stop();
     }
@@ -125,8 +130,16 @@ BOOST_AUTO_TEST_CASE (test_chda)
 
     std::cout << "+1000 iterations OK" << std::endl;
   }
-  double total_time_us = timer->elapsed_wall_clock_time_in_us();
-  std::cout << "CHDA average execution time is : "
-            << total_time_us/double(inner_loop_count * outer_loop_count)
-            << "µs\n";
+  double total_time_us  = timer->elapsed_wall_clock_time_in_us();
+  double total_time1_us = timer1->elapsed_wall_clock_time_in_us();
+  double total_time2_us = timer2->elapsed_wall_clock_time_in_us();
+  double total_time3_us = timer3->elapsed_wall_clock_time_in_us();
+  double total_time4_us = timer4->elapsed_wall_clock_time_in_us();
+  double total_time5_us = timer5->elapsed_wall_clock_time_in_us();
+  std::cout << "CHDA average execution time is : " << total_time_us/double(inner_loop_count * outer_loop_count) << "µs\n"
+            << "=> partial RNEA : " << total_time1_us/double(inner_loop_count * outer_loop_count) << "µs\n"
+            << "=> HCRBA        : " << total_time2_us/double(inner_loop_count * outer_loop_count) << "µs\n"
+            << "=> ddq1 (solver): " << total_time3_us/double(inner_loop_count * outer_loop_count) << "µs\n"
+            << "=> tau2         : " << total_time4_us/double(inner_loop_count * outer_loop_count) << "µs\n"
+            << "=> concatenate  : " << total_time5_us/double(inner_loop_count * outer_loop_count) << "µs\n";
 }
