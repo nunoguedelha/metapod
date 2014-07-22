@@ -33,7 +33,7 @@ namespace metapod {
 namespace internal {
 
 // helper function: update Parent inertia with the contribution of child Node
-  template < typename Robot,  int parent_id, int node_id >
+template < typename Robot,  int parent_id, int node_id >
 struct crba_update_parent_inertia
 {
   typedef typename Nodes<Robot, parent_id>::type Parent;
@@ -52,11 +52,28 @@ struct crba_update_parent_inertia<Robot, NO_PARENT, node_id>
   static void run(Robot&) {}
 };
 
+// helper function: set Non Zero coefficients of submatrix to all ones.
+template  < typename Robot, typename NI, typename NJ, bool trackNZsOnly > struct trakNNZs {};
+template  < typename Robot, typename NI, typename NJ >
+struct trakNNZs<Robot, NI, NJ, false>
+{
+  static void run(Robot&) {}
+};
+template  < typename Robot, typename NI, typename NJ >
+struct trakNNZs<Robot, NI, NJ, true>
+{
+  static void run(Robot& robot)
+  {
+    robot.H.template block< NI::Joint::NBDOF, NJ::Joint::NBDOF >( NI::q_idx, NJ::q_idx )
+        = Eigen::Matrix<typename Robot::RobotFloatType, NI::Joint::NBDOF, NJ::Joint::NBDOF>::Constant(1);
+  }
+};
+
 } // end of namespace metapod::internal
 
 // frontend
-template< typename Robot, bool jcalc = true > struct crba {};
-template< typename Robot > struct crba<Robot, false>
+template< typename Robot, bool jcalc = true, bool trackNZsOnly = false > struct crba {};
+template< typename Robot, bool trackNZsOnly > struct crba<Robot, false, trackNZsOnly>
 {
   template <typename AnyRobot, int node_id >
   struct DftVisitor
@@ -79,6 +96,9 @@ template< typename Robot > struct crba<Robot, false>
           block< NI::Joint::NBDOF, NJ::Joint::NBDOF >
                ( NI::q_idx, NJ::q_idx )
           = ni.joint_F.transpose() * nj.joint.S.S();
+
+        internal::trakNNZs<AnyyRobot, NI, NJ, trackNZsOnly>::run(robot);
+
         robot.H.template
           block< NJ::Joint::NBDOF, NI::Joint::NBDOF >
                ( NJ::q_idx, NI::q_idx )
@@ -106,6 +126,7 @@ template< typename Robot > struct crba<Robot, false>
       robot.H.template block<Node::Joint::NBDOF, Node::Joint::NBDOF>(
               Node::q_idx, Node::q_idx)
                        = node.joint.S.transpose() * node.joint_F;
+      internal::trakNNZs<AnyRobot, Node, Node, trackNZsOnly>::run(robot);
       backward_traversal_prev< BwdtVisitor, Robot, node_id >::run(robot);
     }
   };
@@ -121,12 +142,12 @@ template< typename Robot > struct crba<Robot, false>
 };
 
 // frontend
-template< typename Robot > struct crba< Robot, true >
+template< typename Robot > struct crba< Robot, true, false >
 {
   static void run(Robot& robot, const typename Robot::confVector& q)
   {
     jcalc< Robot >::run(robot, q, Robot::confVector::Zero());
-    crba< Robot, false >::run(robot);
+    crba< Robot, false, false >::run(robot);
   }
 };
 

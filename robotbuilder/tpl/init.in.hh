@@ -15,11 +15,16 @@
 #  pragma warning( disable: 4251 4099 4305 4244 )
 # endif
 
+// The sparse module API is not stable yet.
+# define EIGEN_YES_I_KNOW_SPARSE_MODULE_IS_NOT_STABLE_YET
+
 # include "config.hh"
 
 # include <metapod/tools/common.hh>
 # include <metapod/tools/joint.hh>
 # include <metapod/tools/initnufwddyn.hh>
+# include <metapod/tools/qcalc.hh>
+# include <Eigen/Sparse>
 
 // by default, boost fusion vector only provides constructor for vectors with
 // up to 10 elements.
@@ -32,6 +37,8 @@
 # include <boost/fusion/sequence.hpp>
 # include <boost/fusion/include/sequence.hpp>
 # include <boost/fusion/include/vector.hpp>
+# include <metapod/algos/crba.hh>
+# include <metapod/algos/hcrba.hh>
 
 namespace metapod {
 
@@ -76,8 +83,10 @@ public:
   // inertias expressed in body frames
   static Inertia inertias[@ROBOT_NB_BODIES@];
   NodeVector nodes;
-  Eigen::Matrix< FloatType, NBDOF, NBDOF > H; // used by crba
-  
+  Eigen::Matrix< FloatType, NBDOF, NBDOF > H; // used by crba, hcrba and chda
+  Eigen::SparseMatrix< FloatType > sparseH; // sparse matrix for solving unknown accelerations
+                                                          // (hybrid dynamics algorithm).
+
   // permutation matrix Q
   typedef Eigen::Matrix<FloatType, 1, NBDOF> VectorNBDOFf;
   typedef Eigen::Matrix<FloatType, NBDOF, NBDOF> MatrixNBDOFf;
@@ -91,8 +100,13 @@ public:
   static PermutationMatrixNBDOFf Qt; // transpose of Q
   
   @ROBOT_CLASS_NAME@():
-    H(MatrixNBDOFf::Zero())
-  {}
+    H(MatrixNBDOFf::Zero()),
+    sparseH(NBDOF,NBDOF)
+  {
+    // we shall use permutation matrix Q within the hybrid dynamics algorithm
+    qcalc< @ROBOT_CLASS_NAME@ >::run(); // Apply the permutation matrix Q
+    crba< @ROBOT_CLASS_NAME@, false, true >::run(*this);
+  }
 };
 
 // map node id to node type
