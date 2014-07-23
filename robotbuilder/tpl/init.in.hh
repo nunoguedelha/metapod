@@ -39,6 +39,7 @@
 # include <boost/fusion/include/vector.hpp>
 # include <metapod/algos/crba.hh>
 # include <metapod/algos/hcrba.hh>
+//# include <metapod/tools/sparseHfromTrackNZs.hh>
 
 namespace metapod {
 
@@ -85,12 +86,15 @@ public:
   NodeVector nodes;
   Eigen::Matrix< FloatType, NBDOF, NBDOF > H; // used by crba, hcrba and chda
   Eigen::SparseMatrix< FloatType > sparseH; // sparse matrix for solving unknown accelerations
-                                                          // (hybrid dynamics algorithm).
+                                            // (hybrid dynamics algorithm).
+  typedef Eigen::Triplet<FloatType> Tripletf;
+  std::vector<Tripletf> sparseHtripletList;
 
   // permutation matrix Q
   typedef Eigen::Matrix<FloatType, 1, NBDOF> VectorNBDOFf;
   typedef Eigen::Matrix<FloatType, NBDOF, NBDOF> MatrixNBDOFf;
   typedef Eigen::PermutationMatrix<NBDOF, NBDOF, FloatType> PermutationMatrixNBDOFf;
+
   static const int nbFdDOF = @fwdDyn_joints_dof@;
   static VectorNBDOFf fdNodesFirst; // permutation indexes for building Q matrix
   static VectorNBDOFf idNodes; // permutation indexes for building Q matrix
@@ -105,7 +109,13 @@ public:
   {
     // we shall use permutation matrix Q within the hybrid dynamics algorithm
     qcalc< @ROBOT_CLASS_NAME@ >::run(); // Apply the permutation matrix Q
-    crba< @ROBOT_CLASS_NAME@, false, true >::run(*this);
+    sparseHtripletList.reserve(NBDOF*NBDOF);
+    crba< @ROBOT_CLASS_NAME@, false, true >::run(*this); // Run CRBA for tracking Non-Zero coefficients
+    //initSparseHfromTrackNZs< >(*this);
+    sparseH.setFromTriplets(sparseHtripletList.begin(), sparseHtripletList.end());
+    sparseH.makeCompressed();
+    std::cout << sparseH << std::endl << std::endl;
+    std::cout << H << std::endl << std::endl;
   }
 };
 

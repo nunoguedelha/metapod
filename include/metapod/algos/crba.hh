@@ -28,6 +28,7 @@
 # include "metapod/tools/jcalc.hh"
 # include "metapod/tools/depth_first_traversal.hh"
 # include "metapod/tools/backward_traversal_prev.hh"
+# include <Eigen/Sparse>
 
 namespace metapod {
 namespace internal {
@@ -64,8 +65,16 @@ struct trakNNZs<Robot, NI, NJ, true>
 {
   static void run(Robot& robot)
   {
-    robot.H.template block< NI::Joint::NBDOF, NJ::Joint::NBDOF >( NI::q_idx, NJ::q_idx )
-        = Eigen::Matrix<typename Robot::RobotFloatType, NI::Joint::NBDOF, NJ::Joint::NBDOF>::Constant(1);
+    for(int i=NI::q_idx; i<NI::q_idx+NI::Joint::NBDOF; i++)
+    {
+      for(int j=NJ::q_idx; j<NJ::q_idx+NJ::Joint::NBDOF; j++)
+      {
+        robot.sparseHtripletList.push_back(Eigen::Triplet<typename Robot::RobotFloatType>(i,j,1));
+        robot.sparseHtripletList.push_back(Eigen::Triplet<typename Robot::RobotFloatType>(j,i,1));
+      }
+    }
+    //robot.H.template block< NI::Joint::NBDOF, NJ::Joint::NBDOF >( NI::q_idx, NJ::q_idx )
+    //    = Eigen::Matrix<typename Robot::RobotFloatType, NI::Joint::NBDOF, NJ::Joint::NBDOF>::Ones();
   }
 };
 
@@ -97,14 +106,14 @@ template< typename Robot, bool trackNZsOnly > struct crba<Robot, false, trackNZs
                ( NI::q_idx, NJ::q_idx )
           = ni.joint_F.transpose() * nj.joint.S.S();
 
-        internal::trakNNZs<AnyyRobot, NI, NJ, trackNZsOnly>::run(robot);
-
         robot.H.template
           block< NJ::Joint::NBDOF, NI::Joint::NBDOF >
                ( NJ::q_idx, NI::q_idx )
           = robot.H.template
               block< NI::Joint::NBDOF, NJ::Joint::NBDOF >
                    ( NI::q_idx, NJ::q_idx ).transpose();
+
+        internal::trakNNZs<AnyyRobot, NI, NJ, trackNZsOnly>::run(robot);
       }
 
       static void finish(AnyyRobot&) {}
