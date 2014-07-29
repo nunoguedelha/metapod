@@ -68,8 +68,8 @@ namespace internal {
       typedef typename Robot::confVector confVector;
       typedef typename Robot::MatrixNBDOFf MatrixNBDOFf;
 
-      typedef Eigen::PermutationMatrix<Robot::nbFdDOF, Robot::nbFdDOF, typename Robot::RobotFloatType> PermutationMatrixDof1; // first nbFdDOF lines or columns
-      typedef Eigen::PermutationMatrix<Robot::NBDOF-Robot::nbFdDOF, Robot::NBDOF-Robot::nbFdDOF, typename Robot::RobotFloatType> PermutationMatrixDof2; // last NBDOF-nbFdDOF lines or columns
+      typedef Eigen::PermutationMatrix<Robot::nbFdDOF, Robot::nbFdDOF, int> PermutationMatrixDof1; // first nbFdDOF lines or columns
+      typedef Eigen::PermutationMatrix<Robot::NBDOF-Robot::nbFdDOF, Robot::NBDOF-Robot::nbFdDOF, int> PermutationMatrixDof2; // last NBDOF-nbFdDOF lines or columns
 
       typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, 1> confVectorDof1;
       typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, 1> confVectorDof2;

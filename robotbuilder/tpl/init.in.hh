@@ -91,17 +91,17 @@ public:
   std::vector<Tripletf> sparseHtripletList;
 
   // permutation matrix Q
-  typedef Eigen::Matrix<FloatType, 1, NBDOF> VectorNBDOFf;
+  typedef Eigen::Matrix<int, 1, NBDOF> VectorNBDOFi;
   typedef Eigen::Matrix<FloatType, NBDOF, NBDOF> MatrixNBDOFf;
-  typedef Eigen::PermutationMatrix<NBDOF, NBDOF, FloatType> PermutationMatrixNBDOFf;
+  typedef Eigen::PermutationMatrix<NBDOF, NBDOF, int> PermutationMatrixNBDOFi;
 
   static const int nbFdDOF = @fwdDyn_joints_dof@;
-  static VectorNBDOFf fdNodesFirst; // permutation indexes for building Q matrix
-  static VectorNBDOFf idNodes; // permutation indexes for building Q matrix
+  static VectorNBDOFi fdNodesFirst; // permutation indexes for building Q matrix
+  static VectorNBDOFi idNodes; // permutation indexes for building Q matrix
   static int fdNodesFirstFillIndex;
   static int idNodesFillIndex;
-  static PermutationMatrixNBDOFf Q;
-  static PermutationMatrixNBDOFf Qt; // transpose of Q
+  static PermutationMatrixNBDOFi Q;
+  static PermutationMatrixNBDOFi Qt; // transpose of Q
   
   @ROBOT_CLASS_NAME@():
     H(MatrixNBDOFf::Zero()),

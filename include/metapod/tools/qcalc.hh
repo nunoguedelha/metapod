@@ -90,7 +90,7 @@ namespace internal {
       // concatenate both lists
       Robot::fdNodesFirst.tail(Robot::idNodesFillIndex) = Robot::idNodes.head(Robot::idNodesFillIndex);
       // get permutation matrix Q from q_idx list
-      Robot::Qt = Eigen::PermutationMatrix<Robot::NBDOF, Robot::NBDOF, typename Robot::RobotFloatType>(Robot::fdNodesFirst);
+      Robot::Qt = typename Robot::PermutationMatrixNBDOFi(Robot::fdNodesFirst);
       Robot::Q = Robot::Qt.transpose();
     }
   };
