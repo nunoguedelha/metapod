@@ -19,85 +19,27 @@
 #ifndef METAPOD_SPARSEHFROMTRACKNZS_HH
 # define METAPOD_SPARSEHFROMTRACKNZS_HH
 
+# include <Eigen/Sparse>
 
 namespace metapod {
 namespace internal {
-
-template <typename Robot>
-struct initSparseHfromTrackNZs
-{
-  typedef typename boost::fusion::result_of::value_at_c<typename Robot::NodeVector, node_id>::type Node;
-  static const int NB_DOF = Node::Joint::NBDOF;
-
-  static void discover(std::ifstream &log, typename Robot::confVector &v, const bool &isTorque)
-  {
-    findString(Node::joint_name, log);
-    if( (isTorque && Node::jointFwdDyn) || (!isTorque && !Node::jointFwdDyn) )
-    {
-      for(int i=0; i<NB_DOF; ++i)
-        log >> v[Node::q_idx+i];
-    }
-    else
-    {
-      // copy "invalid" configuration to output conf Vector (v[q_idx] to v[q_idx+NB_DOF-1])
-      v.template segment<NB_DOF>(Node::q_idx) = Eigen::Matrix<typename Robot::RobotFloatType, NB_DOF, 1>::Constant(-1.1111111);
-    }
-  }
-  static void discover(typename Robot::confVector &log, typename Robot::confVector &v, const bool &isTorque)
-  {
-    if( (isTorque && Node::jointFwdDyn) || (!isTorque && !Node::jointFwdDyn) )
-    {
-      // copy log[q_idx..q_idx+NB_DOF-1] to output conf Vector segment v[q_idx..q_idx+NB_DOF-1]
-      v.template segment<NB_DOF>(Node::q_idx) = log.template segment<NB_DOF>(Node::q_idx);
-    }
-    else
-    {
-      // copy "invalid" configuration to output conf Vector segment v[q_idx..q_idx+NB_DOF-1]
-      v.template segment<NB_DOF>(Node::q_idx) = Eigen::Matrix<typename Robot::RobotFloatType, NB_DOF, 1>::Constant(-1.1111111);
-    }
-  }
-
-  static void finish(std::ifstream &, typename Robot::confVector &, const bool &) {}
-  static void finish(typename Robot::confVector &, typename Robot::confVector &, const bool &) {}
-};
-
-template <typename Robot, int node_id>
-struct InitConfVisitor
-{
-  static void discover(std::ifstream &log, typename Robot::confVector &v)
-  {
-    typedef typename Nodes<Robot, node_id>::type Node;
-    findString(Node::joint_name, log);
-    const int NB_DOF = boost::fusion::result_of::
-      value_at_c<typename Robot::NodeVector, node_id>::type::
-      Joint::NBDOF;
-    for(int i=0; i<NB_DOF; ++i)
-      log >> v[Node::q_idx+i];
-  }
-  static void discover(typename Robot::confVector &log, typename Robot::confVector &v)
-  {
-    v = log;
-  }
-
-  static void finish(std::ifstream &, typename Robot::confVector &) {}
-  static void finish(typename Robot::confVector &, typename Robot::confVector &) {}
-};
-
 } // end of namespace metapod::internal
 
 template< typename Robot > struct initSparseHfromTrackNZs
 {
-  static void run(Robot& robot)
-  {
-    depth_first_traversal< internal::InitConfVisitor, Robot >::run(log, v);
-  }
+  static void run(Robot& robot) {}
 };
 
 template< typename Robot > struct updateSparseHfromTrackNZs
 {
-  static void run(ConfTypeStreamOrVector & log, typename Robot::confVector & v)
+  static void run(Robot & robot, typename Robot::MatrixDof11 & h11)
   {
-    depth_first_traversal< internal::InitConfVisitor, Robot >::run(log, v);
+    for(int i=0; i<robot.sparseH11.outerSize(); ++i)
+      for(typename Robot::SparseMatrixf::InnerIterator it(robot.sparseH11, i); it; ++it)
+      {
+        // copy respective value [i,j] from inertia matrix h11[i,j]
+        it.valueRef() = h11(it.row(),it.col());
+      }
   }
 };
 

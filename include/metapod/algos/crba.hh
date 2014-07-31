@@ -54,14 +54,14 @@ struct crba_update_parent_inertia<Robot, NO_PARENT, node_id>
 };
 
 // helper function: set Non Zero coefficients of submatrix to all ones.
-template  < typename Robot, typename NI, typename NJ, bool trackNZsOnly > struct trakNNZs {};
+template  < typename Robot, typename NI, typename NJ, bool trackNZsOnly > struct trakNZs {};
 template  < typename Robot, typename NI, typename NJ >
-struct trakNNZs<Robot, NI, NJ, false>
+struct trakNZs<Robot, NI, NJ, false>
 {
   static void run(Robot&) {}
 };
 template  < typename Robot, typename NI, typename NJ >
-struct trakNNZs<Robot, NI, NJ, true>
+struct trakNZs<Robot, NI, NJ, true>
 {
   static void run(Robot& robot)
   {
@@ -113,7 +113,7 @@ template< typename Robot, bool trackNZsOnly > struct crba<Robot, false, trackNZs
               block< NI::Joint::NBDOF, NJ::Joint::NBDOF >
                    ( NI::q_idx, NJ::q_idx ).transpose();
 
-        internal::trakNNZs<AnyyRobot, NI, NJ, trackNZsOnly>::run(robot);
+        internal::trakNZs<AnyyRobot, NI, NJ, trackNZsOnly>::run(robot);
       }
 
       static void finish(AnyyRobot&) {}
@@ -135,7 +135,7 @@ template< typename Robot, bool trackNZsOnly > struct crba<Robot, false, trackNZs
       robot.H.template block<Node::Joint::NBDOF, Node::Joint::NBDOF>(
               Node::q_idx, Node::q_idx)
                        = node.joint.S.transpose() * node.joint_F;
-      internal::trakNNZs<AnyRobot, Node, Node, trackNZsOnly>::run(robot);
+      internal::trakNZs<AnyRobot, Node, Node, trackNZsOnly>::run(robot);
       backward_traversal_prev< BwdtVisitor, Robot, node_id >::run(robot);
     }
   };

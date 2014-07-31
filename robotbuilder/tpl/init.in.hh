@@ -80,22 +80,24 @@ public:
   NodeVector;
 
   // member variables
+  typedef Eigen::Matrix< int, 1, NBDOF > VectorNBDOFi;
+  typedef Eigen::Matrix< FloatType, NBDOF, NBDOF > MatrixNBDOFf;
+  typedef Eigen::PermutationMatrix< NBDOF, NBDOF, int > PermutationMatrixNBDOFi;
+  typedef Eigen::Triplet< FloatType > Tripletf;
+  typedef Eigen::SparseMatrix< FloatType > SparseMatrixf;
 
   // inertias expressed in body frames
   static Inertia inertias[@ROBOT_NB_BODIES@];
   NodeVector nodes;
-  Eigen::Matrix< FloatType, NBDOF, NBDOF > H; // used by crba, hcrba and chda
-  Eigen::SparseMatrix< FloatType > sparseH; // sparse matrix for solving unknown accelerations
-                                            // (hybrid dynamics algorithm).
-  typedef Eigen::Triplet<FloatType> Tripletf;
+  MatrixNBDOFf H; // used by crba, hcrba and chda
+  SparseMatrixf sparseH11; // sparse matrix for solving unknown accelerations
+                           // (hybrid dynamics algorithm).
   std::vector<Tripletf> sparseHtripletList;
+  Eigen::SimplicialLLT<SparseMatrixf> lltOfH11;
 
   // permutation matrix Q
-  typedef Eigen::Matrix<int, 1, NBDOF> VectorNBDOFi;
-  typedef Eigen::Matrix<FloatType, NBDOF, NBDOF> MatrixNBDOFf;
-  typedef Eigen::PermutationMatrix<NBDOF, NBDOF, int> PermutationMatrixNBDOFi;
-
   static const int nbFdDOF = @fwdDyn_joints_dof@;
+  typedef Eigen::Matrix<FloatType, nbFdDOF, nbFdDOF> MatrixDof11;
   static VectorNBDOFi fdNodesFirst; // permutation indexes for building Q matrix
   static VectorNBDOFi idNodes; // permutation indexes for building Q matrix
   static int fdNodesFirstFillIndex;
@@ -105,17 +107,24 @@ public:
   
   @ROBOT_CLASS_NAME@():
     H(MatrixNBDOFf::Zero()),
-    sparseH(NBDOF,NBDOF)
+    sparseH11(nbFdDOF,nbFdDOF)
   {
     // we shall use permutation matrix Q within the hybrid dynamics algorithm
     qcalc< @ROBOT_CLASS_NAME@ >::run(); // Apply the permutation matrix Q
     sparseHtripletList.reserve(NBDOF*NBDOF);
     crba< @ROBOT_CLASS_NAME@, false, true >::run(*this); // Run CRBA for tracking Non-Zero coefficients
     //initSparseHfromTrackNZs< >(*this);
-    sparseH.setFromTriplets(sparseHtripletList.begin(), sparseHtripletList.end());
-    sparseH.makeCompressed();
-    std::cout << sparseH << std::endl << std::endl;
-    std::cout << H << std::endl << std::endl;
+    SparseMatrixf sparseH(NBDOF, NBDOF);
+    sparseH.setFromTriplets(sparseHtripletList.begin(), sparseHtripletList.end()); // generate the sparseH from the list of non-zero coefficients
+    sparseH.makeCompressed(); // remove empty slots
+    SparseMatrixf sparseHrff(NBDOF, NBDOF);
+    sparseHrff = Q * SparseMatrixf(sparseH * Qt); // sparseH reordered
+    sparseH11 = sparseHrff.topLeftCorner(nbFdDOF, nbFdDOF); // H11, square sub-matrix of size "nbFdDOF x nbFdDOF"
+    std::cout << "sparseH :\n" << sparseH << std::endl;
+    std::cout << "sparseHrff :\n" << sparseHrff << std::endl;
+    std::cout << "sparseH11 :\n" << sparseH11 << std::endl;
+    std::cout << "perm Q and Qt :\n" << Q.toDenseMatrix() << "\n\n" << std::endl;
+    lltOfH11.analyzePattern(sparseH11);
   }
 };
 

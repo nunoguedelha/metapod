@@ -33,6 +33,7 @@
 # include "metapod/algos/rnea.hh"
 # include "metapod/algos/crba.hh"
 # include "metapod/algos/hcrba.hh"
+# include "metapod/tools/sparseHfromTrackNZs.hh"
 
 
 /// Templated Hybrid Dynamics Algorithm.
@@ -67,14 +68,14 @@ namespace internal {
 
       typedef typename Robot::confVector confVector;
       typedef typename Robot::MatrixNBDOFf MatrixNBDOFf;
+      typedef typename Robot::MatrixDof11 MatrixDof11;
+      typedef typename Robot::SparseMatrixf SparseMatrixf;
 
       typedef Eigen::PermutationMatrix<Robot::nbFdDOF, Robot::nbFdDOF, int> PermutationMatrixDof1; // first nbFdDOF lines or columns
       typedef Eigen::PermutationMatrix<Robot::NBDOF-Robot::nbFdDOF, Robot::NBDOF-Robot::nbFdDOF, int> PermutationMatrixDof2; // last NBDOF-nbFdDOF lines or columns
 
       typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, 1> confVectorDof1;
       typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, 1> confVectorDof2;
-      typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, Robot::nbFdDOF> MatrixDof11;
-      typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::nbFdDOF, Robot::NBDOF-Robot::nbFdDOF> MatrixDof12;
       typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, Robot::nbFdDOF> MatrixDof21;
 
       timer1->resume();
@@ -95,6 +96,8 @@ namespace internal {
       hcrba<Robot, false>::run(robot, q); // First, compute whole H
       MatrixNBDOFf Hrff = Robot::Q * robot.H * Robot::Qt; // H reordered
       MatrixDof11 H11 = Hrff.template topLeftCorner<Robot::nbFdDOF, Robot::nbFdDOF>(); // H11, square matrix of size "nbFdDOF x nbFdDOF"
+      metapod::updateSparseHfromTrackNZs<Robot>::run(robot, H11); // update sparsity matrix sparseH11 from full H11
+      //std::cout << "diff sparsity :\n" << H11 - MatrixDof11(robot.sparseH11) << std::endl;
       timer2->stop();
 
       timer3->resume();
@@ -102,8 +105,9 @@ namespace internal {
       confVectorDof1 tau1 = confVector(Robot::Q * torques).template head<Robot::nbFdDOF>(); // compute tau1: all known torques (nbFdDOF lines)
       confVectorDof1 C1prime = confVector(Robot::Q * CprimeTorques).template head<Robot::nbFdDOF>(); // compute C1prime (nbFdDOF lines)
       // solve system
-      Eigen::LLT<MatrixDof11> lltOfH11(H11);
-      confVectorDof1 ddq1 = lltOfH11.solve(tau1 - C1prime);
+      //Eigen::LLT<MatrixDof11> lltOfH11(H11);
+      robot.lltOfH11.factorize(robot.sparseH11);
+      confVectorDof1 ddq1 = robot.lltOfH11.solve(tau1 - C1prime);
       timer3->stop();
 
       timer4->resume();
@@ -172,23 +176,32 @@ namespace internal {
                     Timer* timer5
                     )
     {
+      typedef typename Robot::confVector confVector;
+
       // we follow the steps of the Hybrid Dynamics algorithm,
       // while ddq1 = ddq, and ddq2 = null vector.
       timer1->resume();
       // 1 - compute C = ID(q,dq,0) using RNA, (all ddq variables are unknown) :
-      rnea<Robot, jcalc, gravity>::run(robot, q, dq, Robot::confVector::Zero());
-      typename Robot::confVector C; getTorques(robot, C);
+      rnea<Robot, jcalc, gravity>::run(robot, q, dq, confVector::Zero());
+      confVector C; getTorques(robot, C);
       timer1->stop();
 
       timer2->resume();
       // 2 -compute inertia H (H11 = H, H21 = H12 = H22 = null matrixes)
       crba<Robot, false>::run(robot, q);
+      typename Robot::MatrixNBDOFf H11 = Robot::Q * robot.H * Robot::Qt; // H reordered
+      metapod::updateSparseHfromTrackNZs<Robot>::run(robot, H11); // update sparsity matrix sparseH11 from full H11
       timer2->stop();
 
       timer3->resume();
       // 3 - solve H*ddq = torques - C
-      Eigen::LLT<typename Robot::MatrixNBDOFf> lltOfH(robot.H);
-      ddq = lltOfH.solve(torques - C);
+      //Eigen::LLT<typename Robot::MatrixNBDOFf> lltOfH(robot.H);
+      //ddq = lltOfH.solve(torques - C);
+      confVector tau1 = Robot::Q * torques;
+      confVector C1 = Robot::Q * C;
+      robot.lltOfH11.factorize(robot.sparseH11);
+      confVector ddq1 = robot.lltOfH11.solve(tau1 - C1);
+      ddq = Robot::Qt * ddq1;
       timer3->stop();
     }
   };
