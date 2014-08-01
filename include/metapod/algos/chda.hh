@@ -176,7 +176,9 @@ namespace internal {
                     Timer* timer5
                     )
     {
+      typedef typename Robot::MatrixNBDOFf MatrixNBDOFf;
       typedef typename Robot::confVector confVector;
+      typedef typename Robot::SparseMatrixf SparseMatrixf;
 
       // we follow the steps of the Hybrid Dynamics algorithm,
       // while ddq1 = ddq, and ddq2 = null vector.
@@ -189,20 +191,21 @@ namespace internal {
       timer2->resume();
       // 2 -compute inertia H (H11 = H, H21 = H12 = H22 = null matrixes)
       crba<Robot, false>::run(robot, q);
-      typename Robot::MatrixNBDOFf H11 = Robot::Q * robot.H * Robot::Qt; // H reordered
+      MatrixNBDOFf H11 = Robot::Q * robot.H * Robot::Qt; // H reordered
       metapod::updateSparseHfromTrackNZs<Robot>::run(robot, H11); // update sparsity matrix sparseH11 from full H11
       timer2->stop();
 
-      timer3->resume();
       // 3 - solve H*ddq = torques - C
       //Eigen::LLT<typename Robot::MatrixNBDOFf> lltOfH(robot.H);
       //ddq = lltOfH.solve(torques - C);
       confVector tau1 = Robot::Q * torques;
       confVector C1 = Robot::Q * C;
+      //SparseMatrixf sparseH11 = robot.perm * SparseMatrixf(robot.sparseH11 * robot.perm.transpose());
       robot.lltOfH11.factorize(robot.sparseH11);
+      timer3->resume();
       confVector ddq1 = robot.lltOfH11.solve(tau1 - C1);
-      ddq = Robot::Qt * ddq1;
       timer3->stop();
+      ddq = Robot::Qt * ddq1;
     }
   };
 

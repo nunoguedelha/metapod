@@ -25,6 +25,7 @@
 # include <metapod/tools/initnufwddyn.hh>
 # include <metapod/tools/qcalc.hh>
 # include <Eigen/Sparse>
+# include <Eigen/OrderingMethods>
 
 // by default, boost fusion vector only provides constructor for vectors with
 // up to 10 elements.
@@ -84,7 +85,7 @@ public:
   typedef Eigen::Matrix< FloatType, NBDOF, NBDOF > MatrixNBDOFf;
   typedef Eigen::PermutationMatrix< NBDOF, NBDOF, int > PermutationMatrixNBDOFi;
   typedef Eigen::Triplet< FloatType > Tripletf;
-  typedef Eigen::SparseMatrix< FloatType > SparseMatrixf;
+  typedef Eigen::SparseMatrix< FloatType  > SparseMatrixf;
 
   // inertias expressed in body frames
   static Inertia inertias[@ROBOT_NB_BODIES@];
@@ -94,6 +95,7 @@ public:
                            // (hybrid dynamics algorithm).
   std::vector<Tripletf> sparseHtripletList;
   Eigen::SimplicialLLT<SparseMatrixf> lltOfH11;
+  Eigen::PermutationMatrix<Eigen::Dynamic, Eigen::Dynamic, int> perm;
 
   // permutation matrix Q
   static const int nbFdDOF = @fwdDyn_joints_dof@;
@@ -104,7 +106,7 @@ public:
   static int idNodesFillIndex;
   static PermutationMatrixNBDOFi Q;
   static PermutationMatrixNBDOFi Qt; // transpose of Q
-  
+
   @ROBOT_CLASS_NAME@():
     H(MatrixNBDOFf::Zero()),
     sparseH11(nbFdDOF,nbFdDOF)
@@ -117,6 +119,8 @@ public:
     SparseMatrixf sparseH(NBDOF, NBDOF);
     sparseH.setFromTriplets(sparseHtripletList.begin(), sparseHtripletList.end()); // generate the sparseH from the list of non-zero coefficients
     sparseH.makeCompressed(); // remove empty slots
+
+    // reorder sparseH as per permutation matrix Q, and extract sparse H11
     SparseMatrixf sparseHrff(NBDOF, NBDOF);
     sparseHrff = Q * SparseMatrixf(sparseH * Qt); // sparseH reordered
     sparseH11 = sparseHrff.topLeftCorner(nbFdDOF, nbFdDOF); // H11, square sub-matrix of size "nbFdDOF x nbFdDOF"
@@ -124,6 +128,15 @@ public:
     std::cout << "sparseHrff :\n" << sparseHrff << std::endl;
     std::cout << "sparseH11 :\n" << sparseH11 << std::endl;
     std::cout << "perm Q and Qt :\n" << Q.toDenseMatrix() << "\n\n" << std::endl;
+
+    Eigen::COLAMDOrdering<int> ordering;
+    //ordering.operator()< SparseMatrixf, Eigen::Lower >(sparseH11.template selfadjointView<Eigen::Lower>(), perm)
+    ordering.operator()< SparseMatrixf >(sparseH11, perm); // Call COLAMD: computes permutation vector perm.
+    std::cout << perm.toDenseMatrix();
+
+    // reorder the nonzero elements of the matrix, such that the factorization step creates less fill-in.
+    // This step exploits only the structure of the matrix.
+    //lltOfH11.analyzePattern(perm * SparseMatrixf(sparseH11 * perm.transpose()));
     lltOfH11.analyzePattern(sparseH11);
   }
 };
