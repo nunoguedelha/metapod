@@ -32,7 +32,7 @@
 # include <boost/fusion/sequence.hpp>
 # include <boost/fusion/include/sequence.hpp>
 # include <boost/fusion/include/vector.hpp>
-
+# include <metapod/tools/qcalc.hh>
 namespace metapod {
 
 template <typename FloatType>
@@ -92,7 +92,10 @@ public:
   
   @ROBOT_CLASS_NAME@():
     H(MatrixNBDOFf::Zero())
-  {}
+  {
+    // we shall use permutation matrix Q within the hybrid dynamics algorithm
+    qcalc< @ROBOT_CLASS_NAME@ >::run(); // build the permutation operator Q
+  }
 };
 
 // map node id to node type

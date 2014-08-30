@@ -78,9 +78,6 @@ namespace internal {
       typedef Eigen::Matrix<typename Robot::RobotFloatType, Robot::NBDOF-Robot::nbFdDOF, Robot::nbFdDOF> MatrixDof21;
 
       timer1->resume();
-      // we shall use Q and Q sub-matrices Q1, Q2
-      qcalc< Robot >::run(); // Apply the permutation matrix Q
-
       // 1 - compute Cprime = ID(q,q',Qt[0 q2"]) using RNA :
       confVector ddq_rff_1_zeroed = Robot::Q * ddq; // First, reorder ddq
 
@@ -95,7 +92,7 @@ namespace internal {
 
       // 2 - compute H11 from Hprime = Q.H.Qt
       timer2->resume();
-      hcrba<Robot, false>::run(robot, q); // First, compute whole H
+      crba<Robot, false>::run(robot, q); // First, compute whole H
       MatrixNBDOFf Hrff = Robot::Q * robot.H * Robot::Qt; // H reordered
       MatrixDof11 H11 = Hrff.template topLeftCorner<Robot::nbFdDOF, Robot::nbFdDOF>(); // H11, square matrix of size "nbFdDOF x nbFdDOF"
       timer2->stop();
