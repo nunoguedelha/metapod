@@ -92,7 +92,7 @@ namespace internal {
 
       // 2 - compute H11 from Hprime = Q.H.Qt
       timer2->resume();
-      crba<Robot, false>::run(robot, q); // First, compute whole H
+      hcrba<Robot, false>::run(robot, q); // First, compute whole H
       MatrixNBDOFf Hrff = Robot::Q * robot.H * Robot::Qt; // H reordered
       MatrixDof11 H11 = Hrff.template topLeftCorner<Robot::nbFdDOF, Robot::nbFdDOF>(); // H11, square matrix of size "nbFdDOF x nbFdDOF"
       timer2->stop();
@@ -182,7 +182,7 @@ namespace internal {
 
       timer2->resume();
       // 2 -compute inertia H (H11 = H, H21 = H12 = H22 = null matrixes)
-      crba<Robot, false>::run(robot, q);
+      hcrba<Robot, false>::run(robot, q);
       timer2->stop();
 
       timer3->resume();
