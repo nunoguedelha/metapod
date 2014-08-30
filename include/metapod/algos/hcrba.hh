@@ -122,7 +122,7 @@ namespace internal {
     static void run(Robot& robot, StartNode& node) {}
   };
 
-  template < typename Robot, typename NI, typename NJ, bool jointFwdDyn = NI::jointFwdDyn || NJ::jointFwdDyn > struct setHijHjiFromFnS {};
+  template < typename Robot, typename NI, typename NJ, bool jointFwdDyn = NJ::jointFwdDyn > struct setHijHjiFromFnS {};
   template < typename Robot, typename NI, typename NJ >
   struct setHijHjiFromFnS<Robot, NI, NJ, true >
   {
@@ -149,7 +149,7 @@ namespace internal {
     static void run(Robot&, NI&) {}
   };
 
-  template < typename Robot, typename StartNode, bool jointFwdDyn=StartNode::jointFwdDyn > struct startNodeId_2_endNodeId {};
+  template < typename Robot, typename StartNode, bool jointFwdDyn=false > struct startNodeId_2_endNodeId {};
   template < typename Robot, typename StartNode >
   struct startNodeId_2_endNodeId<Robot, StartNode, true>
   {
@@ -165,7 +165,7 @@ namespace internal {
   // "i" (StartNode) is the deepest FD node in the nu(fd) subtree to be processed here.
   // "j" is the root FD node in the nu(fd) subtree.
   template < template <typename AnyRobot, int any_node_id, int any_prev_node_id> class BwdtVisitor, 
-             typename Robot, typename StartNode, bool jointNuOfFwdDyn=StartNode::jointNuOfFwdDyn > struct backwardHijAcrossNuOfFd {};
+             typename Robot, typename StartNode, bool jointFwdDyn=StartNode::jointFwdDyn > struct backwardHijAcrossNuOfFd {};
   template < template <typename AnyRobot, int any_node_id, int any_prev_node_id> class BwdtVisitor, 
              typename Robot, typename StartNode >
   struct backwardHijAcrossNuOfFd<BwdtVisitor, Robot, StartNode, true>

@@ -31,6 +31,7 @@
 # include "metapod/tools/initnufwddyn.hh"
 # include "metapod/tools/qcalc.hh"
 # include "metapod/algos/rnea.hh"
+# include "metapod/algos/diffrnea.hh"
 # include "metapod/algos/crba.hh"
 # include "metapod/algos/hcrba.hh"
 
@@ -107,28 +108,17 @@ namespace internal {
       timer3->stop();
 
       timer4->resume();
-      // 4 - compute tau = Cprime + Qt[H11.q1" H21.q1"]
-      //     tau = [tau1, tau2]t
-      //     tau2 = C2prime + H21.q1"
-      confVectorDof2 C2prime = confVector(Robot::Q * CprimeTorques).template tail<Robot::NBDOF-Robot::nbFdDOF>(); // C2prime (NBDOF-nbFdDOF lines)
-      MatrixDof21 H21 = Hrff.template bottomLeftCorner<Robot::NBDOF-Robot::nbFdDOF, Robot::nbFdDOF>(); // H21, square matrix of size "NBDOF-nbFdDOF x nbFdDOF"
-      confVectorDof2 tau2 = C2prime + H21 * ddq1;
+      // 4 - compute tau = Cprime + deltaID(Qt[ddq1 0]^t)
+      confVector tauDiff;
+      confVector ddq_2_zeroed, ddq_rff_2_zeroed;
+      ddq_rff_2_zeroed << ddq1,
+                          confVectorDof2::Zero();
+      ddq_2_zeroed = Robot::Qt * ddq_rff_2_zeroed;
+      ddq = ddq_2_zeroed + ddq_1_zeroed;
+      diffrnea<Robot, false, gravity>::run(robot, q, dq, ddq_2_zeroed); // compute torques
+      getTorques(robot, tauDiff);
+      torques = CprimeTorques + tauDiff;
       timer4->stop();
-
-      // 5 - complete output vectors ddq and torques
-      timer5->resume();
-      confVectorDof2 ddq2 = confVector(Robot::Q * ddq).template tail<Robot::NBDOF-Robot::nbFdDOF>();
-
-      confVector ddqRff;
-      ddqRff << ddq1,
-                ddq2;
-      ddq = Robot::Qt * ddqRff;
-
-      confVector torquesRff;
-      torquesRff << tau1,
-                    tau2;
-      torques = Robot::Qt * torquesRff;
-      timer5->stop();
     }
   };
 
