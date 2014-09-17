@@ -103,8 +103,8 @@ namespace internal {
       confVectorDof1 tau1 = confVector(Robot::Q * torques).template head<Robot::nbFdDOF>(); // compute tau1: all known torques (nbFdDOF lines)
       confVectorDof1 C1prime = confVector(Robot::Q * CprimeTorques).template head<Robot::nbFdDOF>(); // compute C1prime (nbFdDOF lines)
       // solve system
-      Eigen::LLT<MatrixDof11> lltOfH11(H11);
-      confVectorDof1 ddq1 = lltOfH11.solve(tau1 - C1prime);
+      Eigen::LDLT<MatrixDof11> ldltOfH11(H11);
+      confVectorDof1 ddq1 = ldltOfH11.solve(tau1 - C1prime);
       timer3->stop();
 
       timer4->resume();
