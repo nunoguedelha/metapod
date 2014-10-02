@@ -35,7 +35,6 @@ BOOST_AUTO_TEST_CASE (test_hcrba)
   typedef CURRENT_MODEL_ROBOT<LocalFloatType> CURRENT_MODEL_ROBOT_LFT;
 
   typedef typename CURRENT_MODEL_ROBOT_LFT::MatrixNBDOFf MatrixNBDOFf;
-  qcalc< CURRENT_MODEL_ROBOT_LFT >::run(); // Apply the permutation matrix Q
 
   // set configuration vector q to reference value.
   CURRENT_MODEL_ROBOT_LFT::confVector q;

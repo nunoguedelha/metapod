@@ -79,17 +79,24 @@ public:
   Eigen::Matrix< FloatType, NBDOF, NBDOF > H; // used by crba
   
   // permutation matrix Q
-  typedef Eigen::Matrix<FloatType, 1, NBDOF> VectorNBDOFf;
-  typedef Eigen::Matrix<FloatType, NBDOF, NBDOF> MatrixNBDOFf;
-  typedef Eigen::PermutationMatrix<NBDOF, NBDOF, FloatType> PermutationMatrixNBDOFf;
   static const int nbFdDOF = @fwdDyn_joints_dof@;
-  static VectorNBDOFf fdNodesFirst; // permutation indexes for building Q matrix
-  static VectorNBDOFf idNodes; // permutation indexes for building Q matrix
-  static int fdNodesFirstFillIndex;
+  typedef Eigen::Matrix<int, 1, NBDOF> VectorNBDOFi;
+  typedef Eigen::Matrix<int, 1, nbFdDOF> VectorNbFdDOFi;
+  typedef Eigen::Matrix<int, 1, NBDOF-nbFdDOF> VectorNbIdDOFi;
+  typedef Eigen::Matrix<FloatType, NBDOF, NBDOF> MatrixNBDOFf;
+  typedef Eigen::Transpositions<NBDOF, NBDOF, int> TranspositionsNBDOFi;
+  typedef Eigen::Transpositions<nbFdDOF, nbFdDOF, int> TranspositionsNbFdDOFi;
+  typedef Eigen::Transpose<Eigen::TranspositionsBase<TranspositionsNBDOFi>> InvOfTranspositionsNBDOFi;
+  typedef Eigen::Transpose<Eigen::TranspositionsBase<TranspositionsNbFdDOFi>> InvOfTranspositionsNbFdDOFi;
+
+  static VectorNBDOFi fdNodesFirst; // permutation indexes for building Q matrix
+  static VectorNbFdDOFi fdNodes; // permutation indexes for building Q matrix
+  static VectorNbIdDOFi idNodes; // permutation indexes for building Q matrix
+  static int fdNodesFillIndex;
   static int idNodesFillIndex;
-  static PermutationMatrixNBDOFf Q;
-  static PermutationMatrixNBDOFf Qt; // transpose of Q
-  
+  static TranspositionsNBDOFi Q;
+  static TranspositionsNbFdDOFi Q1;
+
   @ROBOT_CLASS_NAME@():
     H(MatrixNBDOFf::Zero())
   {

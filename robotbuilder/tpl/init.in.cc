@@ -20,11 +20,12 @@ namespace metapod {
   template <> Spatial::InertiaTpl<FloatType> @ROBOT_CLASS_NAME@<FloatType>::inertias[@node_id@] = {
     @init_inertias@};
 
-  template <> @ROBOT_CLASS_NAME@<FloatType>::VectorNBDOFf @ROBOT_CLASS_NAME@<FloatType>::fdNodesFirst = @ROBOT_CLASS_NAME@<FloatType>::VectorNBDOFf::Zero();
-  template <> @ROBOT_CLASS_NAME@<FloatType>::VectorNBDOFf @ROBOT_CLASS_NAME@<FloatType>::idNodes = @ROBOT_CLASS_NAME@<FloatType>::VectorNBDOFf::Zero();
-  template <> @ROBOT_CLASS_NAME@<FloatType>::PermutationMatrixNBDOFf @ROBOT_CLASS_NAME@<FloatType>::Q = @ROBOT_CLASS_NAME@<FloatType>::PermutationMatrixNBDOFf();
-  template <> @ROBOT_CLASS_NAME@<FloatType>::PermutationMatrixNBDOFf @ROBOT_CLASS_NAME@<FloatType>::Qt = Q.transpose();
-  template <> int @ROBOT_CLASS_NAME@<FloatType>::fdNodesFirstFillIndex = 0;
+  template <> @ROBOT_CLASS_NAME@<FloatType>::VectorNBDOFi @ROBOT_CLASS_NAME@<FloatType>::fdNodesFirst = @ROBOT_CLASS_NAME@<FloatType>::VectorNBDOFi::Zero();
+  template <> @ROBOT_CLASS_NAME@<FloatType>::VectorNbFdDOFi @ROBOT_CLASS_NAME@<FloatType>::fdNodes = @ROBOT_CLASS_NAME@<FloatType>::VectorNbFdDOFi::Zero();
+  template <> @ROBOT_CLASS_NAME@<FloatType>::VectorNbIdDOFi @ROBOT_CLASS_NAME@<FloatType>::idNodes = @ROBOT_CLASS_NAME@<FloatType>::VectorNbIdDOFi::Zero();
+  template <> @ROBOT_CLASS_NAME@<FloatType>::TranspositionsNBDOFi @ROBOT_CLASS_NAME@<FloatType>::Q = @ROBOT_CLASS_NAME@<FloatType>::TranspositionsNBDOFi(@ROBOT_CLASS_NAME@<FloatType>::NBDOF);
+  template <> @ROBOT_CLASS_NAME@<FloatType>::TranspositionsNbFdDOFi @ROBOT_CLASS_NAME@<FloatType>::Q1 = @ROBOT_CLASS_NAME@<FloatType>::TranspositionsNbFdDOFi(@ROBOT_CLASS_NAME@<FloatType>::nbFdDOF);
+  template <> int @ROBOT_CLASS_NAME@<FloatType>::fdNodesFillIndex = 0;
   template <> int @ROBOT_CLASS_NAME@<FloatType>::idNodesFillIndex = 0;
 }
 

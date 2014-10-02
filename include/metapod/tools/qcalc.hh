@@ -43,6 +43,23 @@ namespace internal {
     BUILD
   } Qoperation;
   
+  template< typename Robot, int maxIndex, int currentIndex = 0 >
+  struct OrdrerProofWrapper_internal
+  {
+    static void run(Robot &robot, typename Robot::MatrixNBDOFf &Hrff)
+    {
+      // swap column indices "currentIndex" with "fdNodesFirst[currentIndex]"
+
+      OrdrerProofWrapper_internal<Robot, maxIndex, currentIndex+1>::run(robot, Hrff);
+    }
+  };
+
+  template< typename Robot, int maxIndex >
+  struct OrdrerProofWrapper_internal<Robot, maxIndex, maxIndex>
+  {
+    static void run(Robot &, typename Robot::MatrixNBDOFf &) {}
+  };
+
   template< typename Robot, int q_idx, int nbdof, Qoperation operation, bool fwdDyn >
   struct HandleJointToQmatrix {};
   
@@ -52,8 +69,8 @@ namespace internal {
     static void run()
     {
       // Add q_idx index to FD vector in case of a "fd" mode joint
-      Robot::fdNodesFirst(0, Robot::fdNodesFirstFillIndex) = q_idx;
-      Robot::fdNodesFirstFillIndex++;
+      Robot::fdNodes(0, Robot::fdNodesFillIndex) = q_idx;
+      Robot::fdNodesFillIndex++;
       HandleJointToQmatrix<Robot, q_idx+1, nbdof-1, ADD, true>::run();
     }
   };
@@ -88,10 +105,19 @@ namespace internal {
     static void run()
     {
       // concatenate both lists
-      Robot::fdNodesFirst.tail(Robot::idNodesFillIndex) = Robot::idNodes.head(Robot::idNodesFillIndex);
-      // get permutation matrix Q from q_idx list
-      Robot::Qt = Eigen::PermutationMatrix<Robot::NBDOF, Robot::NBDOF, typename Robot::RobotFloatType>(Robot::fdNodesFirst);
-      Robot::Q = Robot::Qt.transpose();
+      Robot::fdNodesFirst.head(Robot::fdNodesFillIndex) = Robot::fdNodes;
+      Robot::fdNodesFirst.tail(Robot::idNodesFillIndex) = Robot::idNodes;
+      // build permutation matrix Q from FD & ID nodes reordered list
+      Robot::Q  = typename Robot::TranspositionsNBDOFi(Robot::fdNodesFirst);
+//      Robot::Qt = Robot::Q.inverse();
+
+      // Permutation matrix restricted to fdNodes => Q.H = [H_11 H_12]
+      Robot::Q1  = typename Robot::TranspositionsNbFdDOFi(Robot::fdNodes);
+//      Robot::Q1t = Robot::Q1.transpose();
+
+      // Permutation matrix restricted to idNodes => H.Q^t = [H_11; H_21]
+/*      Robot::Q2t= Eigen::PermutationMatrix<Robot::NBDOF-Robot::nbFdDOF, Robot::NBDOF, typename Robot::RobotFloatType>(Robot::fdNodesFirst.tail(Robot::NBDOF-Robot::nbFdDOF));
+      Robot::Q2 = Robot::Q2t.transpose();*/
     }
   };
   
@@ -116,10 +142,18 @@ namespace internal {
   {
     static void run()
     {
-      Robot::fdNodesFirstFillIndex = 0;
+      Robot::fdNodesFillIndex = 0;
       Robot::idNodesFillIndex = 0;
       depth_first_traversal<internal::QcalcVisitor, Robot>::run();
       internal::HandleJointToQmatrix<Robot, 0, 0, internal::BUILD, true>::run();
+    }
+  };
+
+  template< typename Robot > struct OrdrerProofWrapper
+  {
+    static void run(Robot &robot, typename Robot::MatrixNBDOFf &Hrff)
+    {
+      internal::OrdrerProofWrapper_internal<Robot, Robot::nbFdDOF>::run(robot, Hrff);
     }
   };
 

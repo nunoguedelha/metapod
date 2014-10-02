@@ -81,9 +81,7 @@ namespace internal {
       timer1->resume();
       // 1 - compute Cprime = ID(q,q',Qt[0 q2"]) using RNA :
       confVector ddq_rff_1_zeroed = Robot::Q * ddq; // First, reorder ddq
-
       ddq_rff_1_zeroed.template head<Robot::nbFdDOF>().template setZero(); // Then, set unknown accelerations to 0
-
       confVector ddq_1_zeroed = Robot::Qt * ddq_rff_1_zeroed; // roll back to original index order
 
       rnea<Robot, jcalc, gravity>::run(robot, q, dq, ddq_1_zeroed); // compute torques => Cprime
@@ -92,11 +90,14 @@ namespace internal {
       timer1->stop();
 
       // 2 - compute H11 from Hprime = Q.H.Qt
-      timer2->resume();
       hcrba<Robot, false>::run(robot, q); // First, compute whole H
-      MatrixNBDOFf Hrff = Robot::Q * robot.H * Robot::Qt; // H reordered
-      MatrixDof11 H11 = Hrff.template topLeftCorner<Robot::nbFdDOF, Robot::nbFdDOF>(); // H11, square matrix of size "nbFdDOF x nbFdDOF"
+      MatrixNBDOFf Hrff = robot.H;
+      timer2->resume();
+//      MatrixNBDOFf Hrff = MatrixNBDOFf::Zero(); OrdrerProofWrapper<Robot>::run(robot, Hrff); // Hrff = robot.H * Robot::Qt;
+      Hrff = Hrff * Robot::Qt;
       timer2->stop();
+      Hrff = Robot::Q * Hrff;
+      MatrixDof11 H11 = Hrff.template topLeftCorner<Robot::nbFdDOF, Robot::nbFdDOF>(); // H11, square matrix of size "nbFdDOF x nbFdDOF"
 
       timer3->resume();
       // 3 - solve H11*q1" = tau1 - C1prime
